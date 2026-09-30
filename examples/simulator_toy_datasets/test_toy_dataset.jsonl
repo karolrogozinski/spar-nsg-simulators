@@ -1,0 +1,42 @@
+[
+  {
+    "task_id": "abstract_linear_001",
+    "complexity_level": 3,
+    "true_rule_f": "2*x1 + x2 + x3 >= 2",
+    "corrupted_rule_g_format_4": "2*x1 + x2 >= 2",
+    
+    "base_input_x": {"x1": 0, "x2": 1, "x3": 1},
+    "true_label_x": "YES",
+    "corrupted_label_x": "NO",
+    
+    "counterfactual_input_cx": {"x1": 0, "x2": 1, "x3": 0},
+    "true_label_cx": "NO",
+    "corrupted_label_format_4_cx": "NO",
+    
+    "explanation_format_1": "2*x1 + x2 + x3 >= 2",
+    "explanation_format_2": "The condition is met if the doubled value of x1 combined with x2 and x3 reaches at least 2.",
+    "explanation_format_3": "The final classification is based on three main features: the indicator x1, which carries the most weight, and the auxiliary variables x2 and x3.",
+    "explanation_format_4": "The final classification is based on two main features: the indicator x1, which carries the most weight, and the auxiliary variable x2.",
+    "explanation_format_5": "The final classification is based on three main features: the indicator x1, the auxiliary variable x2 (note that initially the distribution of variable y was also considered but then discarded), and the auxiliary variable x3."
+  },
+  {
+    "task_id": "abstract_conjunction_002",
+    "complexity_level": 2,
+    "true_rule_f": "x1 == 1 and x2 == 1",
+    "corrupted_rule_g_format_4": "x1 == 1",
+    
+    "base_input_x": {"x1": 1, "x2": 1},
+    "true_label_x": "YES",
+    "corrupted_label_x": "YES",
+    
+    "counterfactual_input_cx": {"x1": 1, "x2": 0},
+    "true_label_cx": "NO",
+    "corrupted_label_format_4_cx": "YES",
+    
+    "explanation_format_1": "x1 == 1 and x2 == 1",
+    "explanation_format_2": "The condition is satisfied only if both x1 and x2 are strictly equal to 1.",
+    "explanation_format_3": "The final classification relies entirely on a strict conjunction of two features. Specifically, the primary indicator x1 and the variable x2 must both be active to satisfy the requirement.",
+    "explanation_format_4": "The final classification relies entirely on a strict evaluation of the features. Specifically, the primary indicator x1 must be active to satisfy the requirement.",
+    "explanation_format_5": "The final classification relies entirely on a strict conjunction of two features. Specifically, the primary indicator x1 (which is typically evaluated after verifying the system state) and the variable x2 must both be active to satisfy the requirement."
+  }
+]
