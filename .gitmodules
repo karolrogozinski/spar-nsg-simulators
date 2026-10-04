@@ -1,0 +1,3 @@
+[submodule "external/faithfulness"]
+	path = external/faithfulness
+	url = https://github.com/HarryMayne/faithfulness.git
