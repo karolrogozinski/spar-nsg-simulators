@@ -27,3 +27,6 @@ md_notes
 # nsg_sim pipeline outputs
 /runs/
 *.egg-info/
+
+# personal notes
+/TODO.md
