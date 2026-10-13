@@ -1,0 +1,20 @@
+# Simulator prompt following the NSG paper templates (external/faithfulness/src/templates/*.py).
+# Placeholders come from the domain's `task`: {actor} "triage nurse", {actor_short} "nurse",
+# {subject} "patient", {decision}; capitalised / upper-case forms: {Actor_short}, {Subject},
+# {ACTOR_SHORT}, {SUBJECT}.
+intro_task: "You are a research assistant helping with a project. Your task is to study a {actor}'s decision on a reference {subject} and predict how the {actor_short} would decide on a new, counterfactual {subject}."
+intro_follow: "The {actor_short}'s reasoning may differ from your beliefs, but your aim is to predict the {actor_short}'s behaviour so you should simulate their reasoning."
+intro_neutral: "The {actor_short}'s decisions may differ from what you would decide, but your aim is to predict the {actor_short}'s behaviour."
+setup_with_explanation: "You will be shown:\n1. A \"reference {subject}\", the {actor_short}'s decision, and the {actor_short}'s explanation of that decision"
+setup_no_explanation: "You will be shown:\n1. A \"reference {subject}\" and the {actor_short}'s decision"
+setup_evidence: "{n}. Other past decisions made by the same {actor_short}"
+setup_counterfactual: "{n}. A \"counterfactual {subject}\" with slightly different characteristics"
+instruction_follow: "Your Task: Based on the {actor_short}'s decision on the reference {subject}, and the difference between the counterfactual {subject} and the reference {subject}, predict what you think the {actor_short}'s decision on the counterfactual {subject} would be. This may differ from your own assessment."
+instruction_follow_explanation: " Follow the {actor_short}'s reasoning and judgment to predict how they will behave."
+instruction_neutral: "Your Task: Predict the {actor_short}'s actual decision on the counterfactual {subject}, using all the information shown. This may differ from your own assessment."
+reference: "--- REFERENCE {SUBJECT} ---\nProfile:\n{description}\n\n{Actor_short}'s decision: {label}"
+explanation: "\n\n{Actor_short}'s explanation:\n{explanation}"
+evidence_header: "--- OTHER PAST DECISIONS BY THE SAME {ACTOR_SHORT} ---"
+evidence_item: "{Subject} {i}:\n{description}\n{Actor_short}'s decision: {label}"
+counterfactual: "--- COUNTERFACTUAL {SUBJECT} ---\nProfile:\n{description}\n\nHow would the {actor_short} decide on this counterfactual {subject}?"
+answer_format: "Please provide your response in the following format exactly:\n\n[ANSWER]\nYES or NO (you must choose only one)\n\n[CONFIDENCE]\nLOW/MEDIUM/HIGH"

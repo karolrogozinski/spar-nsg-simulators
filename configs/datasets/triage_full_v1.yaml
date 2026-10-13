@@ -1,0 +1,45 @@
+# Full triage example: every rule structure, every explanation type, pinned edits, evidence.
+# A showcase of the options; start from triage_simple_v1.yaml to learn the basics.
+name: triage_full_v1
+description: 8 hand-written triage rules; faithful/omission/substitution/wrong_threshold/distractor at P0-P3; evidence at P0.
+domain: triage
+seed: 0
+
+rules:
+  - id: T01
+    rule: ["oxygen", "<", 92]
+    tags: {level: 1}
+  - id: T02
+    rule: ["temperature", ">=", 39]
+    tags: {level: 1}
+  - id: T03
+    rule: {all: [["pain", ">=", 7], ["symptom_days", ">=", 3]]}
+    tags: {level: 2}
+  - id: T04
+    rule: {all: [["temperature", ">=", 38], {any: [["heart_rate", ">=", 110], ["oxygen", "<", 94]]}]}
+    # optional: pin how the unfaithful explanations change this rule (otherwise chosen automatically)
+    omit: ["temperature", ">=", 38]
+    substitute: [["heart_rate", ">=", 110], ["pain", ">=", 6]]
+    shift: [["temperature", ">=", 38], ["temperature", ">=", 40]]
+    distractors: ["sex", "insurance"]
+    tags: {level: 3}
+  - id: T05
+    rule: {any: [["arrival", "==", "ambulance"], ["oxygen", "<", 90]]}
+    tags: {level: 2}
+  - id: T06
+    rule: {at_least: 2, of: [["temperature", ">=", 38], ["heart_rate", ">=", 110], ["pain", ">=", 7], ["oxygen", "<", 94]]}
+    tags: {level: 3}
+  - id: T07
+    rule: {all: [["age", ">=", 65], ["chronic", "==", true]], unless: ["pain", "<", 2]}
+    tags: {level: 3}
+  - id: T08
+    rule:
+      any: [{all: [["surgery", "==", true], ["temperature", ">=", 38]]}, ["oxygen", "<", 90]]
+      unless: ["arrival", "==", "referral"]
+    tags: {level: 4}
+
+explanations:
+  types: [faithful, omission, substitution, wrong_threshold, distractor]
+  levels: {wrong_threshold: [P0, P1], distractor: [P0]}   # every other type gets all levels
+counterfactuals: {n_reference: 2, n_per_reference: 8, balance: loose}
+evidence: {n: 5, contradicting: [0, 1, 3, 5], types: [omission, substitution], other_types_contradicting: [0], levels: [P0]}

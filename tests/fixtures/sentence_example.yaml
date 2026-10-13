@@ -1,0 +1,54 @@
+# Example custom domain: inputs are short sentences, features are computed from the words
+# (see tests/sentence_domain.py). The class receives the rest of this file as arguments.
+class: sentence_domain:SentenceDomain
+name: sentence_example
+description: Toy sentence classification from part-of-speech counts.
+
+task:
+  actor: annotator
+  actor_short: annotator
+  subject: sentence
+  decision: The annotator labels whether the sentence is acceptable for the corpus (YES) or not (NO).
+
+explanation:
+  intro: "The sentence is accepted if it "
+  unless: ", unless it "
+  features_only: "The label depended mainly on the sentence's {features}."
+  distractor: "The sentence's {features} were also checked but did not change the label."
+
+features:
+  n_adj:
+    type: numeric
+    range: [0, 3]
+    label: number of adjectives
+    phrases:
+      ">=": {exact: "has at least {v} adjective(s)", approximate: "has about {v} or more adjectives", qualitative: [{max: 1, text: "has an adjective"}, {text: "has several adjectives"}]}
+      "<=": {exact: "has at most {v} adjective(s)", approximate: "has about {v} or fewer adjectives", qualitative: "has few adjectives"}
+  n_noun:
+    type: numeric
+    range: [0, 3]
+    label: number of nouns
+    phrases:
+      ">=": {exact: "has at least {v} noun(s)", approximate: "has about {v} or more nouns", qualitative: [{max: 1, text: "has a noun"}, {text: "has several nouns"}]}
+      "<=": {exact: "has at most {v} noun(s)", approximate: "has about {v} or fewer nouns", qualitative: "has few nouns"}
+  n_verb:
+    type: numeric
+    range: [0, 2]
+    label: number of verbs
+    phrases:
+      ">=": {exact: "has at least {v} verb(s)", approximate: "has about {v} or more verbs", qualitative: "has a verb"}
+      "<=": {exact: "has at most {v} verb(s)", approximate: "has about {v} or fewer verbs", qualitative: "has few verbs"}
+  n_adv:
+    type: numeric
+    range: [0, 2]
+    label: number of adverbs
+    phrases:
+      ">=": {exact: "has at least {v} adverb(s)", approximate: "has about {v} or more adverbs", qualitative: "has an adverb"}
+      "<=": {exact: "has at most {v} adverb(s)", approximate: "has about {v} or fewer adverbs", qualitative: "has few adverbs"}
+  is_question: {type: bool, label: question mark, phrases: {"true": "is a question", "false": "is not a question"}}
+
+words:
+  adj: [happy, small, quiet, old, bright, lazy]
+  noun: [cats, dogs, birds, children, trees, rivers]
+  verb: [sleep, run, sing, grow, shine]
+  adv: [quietly, quickly, often, rarely, today]

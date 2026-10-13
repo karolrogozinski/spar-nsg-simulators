@@ -10,6 +10,7 @@ env/
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
 
 *.jsonl
 *.csv
@@ -19,3 +20,10 @@ __pycache__/
 .vscode/
 .idea/
 *.swp
+
+md_notes
+/notes/
+
+# nsg_sim pipeline outputs
+/runs/
+*.egg-info/

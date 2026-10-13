@@ -1,0 +1,18 @@
+# The simplest useful dataset: four short rules, three explanation types, everything else default
+# (levels P0-P3, 2 reference patients x 8 counterfactuals per rule, no evidence).
+name: triage_simple_v1
+description: 4 short triage rules; faithful, omission and substitution explanations at P0-P3.
+domain: triage
+
+rules:
+  - id: S1
+    rule: ["oxygen", "<", 92]
+  - id: S2
+    rule: ["temperature", ">=", 39]
+  - id: S3
+    rule: {all: [["temperature", ">=", 38], ["heart_rate", ">=", 110]]}
+  - id: S4
+    rule: {any: [["arrival", "==", "ambulance"], ["oxygen", "<", 90]]}
+
+explanations:
+  types: [faithful, omission, substitution]

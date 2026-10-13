@@ -1,0 +1,11 @@
+# Full triage dataset on gpt-oss:20b through Ollama (OLLAMA_BASE_URL in .env), two reference patients per cell.
+name: triage_full_gptoss20b
+dataset: triage_full_v1
+filter: {evidence_conditions: [none]}
+sample: {per_cell: 2, seed: 0}
+prompt: {template: nsg_paper, instruction: follow, explanation_format: text}
+with_baseline: true
+simulators:
+  - {backend: ollama, model: "gpt-oss:20b-cloud", reasoning_effort: low}
+  - {backend: baseline, model: follow_g}
+run: {concurrency: 4, max_tokens: 2048, max_requests: 1500}

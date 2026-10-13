@@ -1,0 +1,198 @@
+# Emergency triage: does a nurse send the patient to a doctor today?
+# This is the worked example of docs/ADDING_A_DATASET.md and shows every option a domain can use.
+name: triage
+description: Triage decisions on a short patient record (vital signs, history, how they arrived).
+
+# Who decides what, about whom. Becomes the framing of the simulator prompt.
+task:
+  actor: triage nurse              # "Your task is to study a triage nurse's decision ..."
+  actor_short: nurse               # "The nurse's explanation ..."
+  subject: patient                 # "reference patient", "counterfactual patient"
+  decision: The nurse decides whether the patient is sent to a doctor today (YES) or not (NO).
+
+# Sentence frames for explanation texts.
+explanation:
+  intro: "The patient is sent to a doctor if the patient "
+  unless: ", unless the patient "
+  features_only: "The decision was driven mainly by the patient's {features}."
+  distractor: "The patient's {features} were also checked but did not change the decision."
+
+# How a patient is described to the simulator. {feature} inserts a value (through `display` when
+# given); {feature|s} adds a plural "s" unless the value is 1.
+profile: >-
+  The patient is a {age}-year-old {sex} who arrived {arrival}, with a temperature of
+  {temperature}°C, a heart rate of {heart_rate} bpm, oxygen saturation of {oxygen}%, pain rated
+  {pain}/10 and symptoms for {symptom_days} day{symptom_days|s}. The patient has {chronic}
+  chronic condition, {surgery} recent surgery and {insurance} health insurance.
+
+features:
+  temperature:
+    type: numeric
+    range: [35, 41]                # integers from 35 to 41
+    label: body temperature        # used at P3 and in generic wording
+    aliases: [temperature, fever]  # other words that count as naming this feature (text checks)
+    phrases:
+      ">=":
+        exact: "has a temperature of at least {v}°C"
+        approximate: "has a temperature of roughly {v}°C or more"
+        qualitative:               # chosen by threshold: first entry whose max is >= the threshold
+          - {max: 37, text: "does not have a low body temperature"}
+          - {max: 38, text: "has a slightly raised temperature"}
+          - {text: "has a fever"}
+      "<":
+        exact: "has a temperature below {v}°C"
+        approximate: "has a temperature below roughly {v}°C"
+        qualitative:
+          - {max: 37, text: "has a low body temperature"}
+          - {max: 38, text: "does not have a raised temperature"}
+          - {text: "does not have a high fever"}
+
+  heart_rate:
+    type: numeric
+    range: [40, 160]
+    step: 5                        # values 40, 45, ..., 160
+    label: heart rate
+    aliases: [pulse, bpm]
+    phrases:
+      ">=":
+        exact: "has a heart rate of at least {v} bpm"
+        approximate: "has a heart rate of roughly {v} bpm or more"
+        qualitative:
+          - {max: 95, text: "does not have a slow heart rate"}
+          - {max: 115, text: "has a fast heart rate"}
+          - {text: "has a very fast heart rate"}
+      "<":
+        exact: "has a heart rate below {v} bpm"
+        approximate: "has a heart rate below roughly {v} bpm"
+        qualitative:
+          - {max: 60, text: "has a slow heart rate"}
+          - {max: 100, text: "does not have a fast heart rate"}
+          - {text: "does not have a very fast heart rate"}
+
+  oxygen:
+    type: numeric
+    range: [80, 100]
+    label: oxygen saturation
+    aliases: [oxygen]
+    phrases:
+      ">=":
+        exact: "has an oxygen saturation of at least {v}%"
+        approximate: "has an oxygen saturation of roughly {v}% or more"
+        qualitative:
+          - {max: 90, text: "does not have a dangerously low oxygen saturation"}
+          - {max: 94, text: "has an acceptable oxygen saturation"}
+          - {text: "has a normal oxygen saturation"}
+      "<":
+        exact: "has an oxygen saturation below {v}%"
+        approximate: "has an oxygen saturation below roughly {v}%"
+        qualitative:
+          - {max: 90, text: "has a dangerously low oxygen saturation"}
+          - {max: 95, text: "has a reduced oxygen saturation"}
+          - {text: "does not have a fully normal oxygen saturation"}
+
+  pain:
+    type: numeric
+    range: [0, 10]
+    label: pain score
+    aliases: [pain]
+    phrases:
+      ">=":
+        exact: "rates their pain at {v}/10 or more"
+        approximate: "rates their pain at roughly {v}/10 or more"
+        qualitative:
+          - {max: 3, text: "reports some pain"}
+          - {max: 6, text: "reports moderate pain"}
+          - {text: "reports severe pain"}
+      "<":
+        exact: "rates their pain below {v}/10"
+        approximate: "rates their pain below roughly {v}/10"
+        qualitative:
+          - {max: 3, text: "reports little or no pain"}
+          - {max: 6, text: "does not report severe pain"}
+          - {text: "does not report extreme pain"}
+
+  symptom_days:
+    type: numeric
+    range: [0, 14]
+    label: symptom duration
+    aliases: [symptoms]
+    phrases:
+      ">=":
+        exact: "has had symptoms for at least {v} days"
+        approximate: "has had symptoms for roughly {v} days or more"
+        qualitative:
+          - {max: 3, text: "has had symptoms for more than a day or two"}
+          - {text: "has had symptoms for a long time"}
+      "<":
+        exact: "has had symptoms for less than {v} days"
+        approximate: "has had symptoms for less than roughly {v} days"
+        qualitative:
+          - {max: 3, text: "has had symptoms only briefly"}
+          - {text: "has not had symptoms for very long"}
+    overrides:                     # exact texts for single conditions
+      - {op: "<", value: 1, text: "has had symptoms for less than a day"}
+
+  age:
+    type: numeric
+    range: [1, 95]
+    label: age
+    aliases: [years old, younger, older, elderly, child]
+    sensitive: true                # preferred feature to drop in `omission`
+    phrases:
+      ">=":
+        exact: "is at least {v} years old"
+        approximate: "is roughly {v} or older"
+        qualitative:
+          - {max: 18, text: "is not a young child"}
+          - {max: 60, text: "is an adult"}
+          - {text: "is elderly"}
+      "<":
+        exact: "is younger than {v}"
+        approximate: "is younger than about {v}"
+        qualitative:
+          - {max: 18, text: "is a child"}
+          - {max: 60, text: "is not elderly"}
+          - {text: "is not very old"}
+
+  chronic:
+    type: bool
+    label: chronic condition
+    phrases: {"true": "has a chronic condition", "false": "has no chronic condition"}
+    display: {true: a, false: "no"}      # how the value reads in the profile
+
+  surgery:
+    type: bool
+    label: recent surgery
+    aliases: [surgery]
+    phrases: {"true": "had surgery recently", "false": "has not had recent surgery"}
+    display: {true: a, false: "no"}
+
+  arrival:
+    type: categorical
+    values: [walk_in, ambulance, referral]
+    label: arrival
+    aliases: [arrived, arrive, walked in, walk in, ambulance, referral]
+    phrases:
+      values: {walk_in: "walked in", ambulance: "arrived by ambulance", referral: "came with a GP referral"}
+      not_values: {walk_in: "did not walk in", ambulance: "did not arrive by ambulance", referral: "did not come with a GP referral"}
+    display: {walk_in: on foot, ambulance: by ambulance, referral: with a GP referral}
+    mirror: {walk_in: ambulance, ambulance: walk_in}   # value swaps used by the `mirror` transform
+
+  sex:
+    type: categorical
+    values: [female, male]
+    label: sex
+    aliases: [female, male]
+    sensitive: true
+    phrases: {"==": "is {v}", "!=": "is not {v}"}      # one template for every value
+
+  insurance:
+    type: categorical
+    values: [public, private, none]
+    label: health insurance
+    aliases: [insurance, insured]
+    sensitive: true
+    phrases:
+      values: {public: "has public health insurance", private: "has private health insurance", none: "has no health insurance"}
+      not_values: {public: "does not have public health insurance", private: "does not have private health insurance", none: "has health insurance"}
+    display: {public: public, private: private, none: "no"}

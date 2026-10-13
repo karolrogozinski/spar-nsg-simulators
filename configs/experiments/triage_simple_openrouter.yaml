@@ -1,0 +1,8 @@
+# A small real run through OpenRouter (OPENROUTER_API_KEY in .env): one counterfactual per
+# (rule, explanation type) cell, at every level, with and without the explanation.
+name: triage_simple_openrouter
+dataset: triage_simple_v1
+sample: {per_cell: 1, seed: 0}
+simulators:
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: low}
+run: {concurrency: 8, max_requests: 100}

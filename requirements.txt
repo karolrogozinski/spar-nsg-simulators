@@ -1,1 +1,24 @@
 datasets
+openai
+
+# --- dependencies for the code from the paper (external/faithfulness) ---
+python-dotenv
+httpx
+matplotlib
+numpy
+openai
+openai-harmony
+openml
+pandas
+pyarrow
+pyparsing
+pytest
+ray
+requests
+scipy
+seaborn
+scikit-learn
+torch
+tqdm
+# vllm  # not for macOS
+# google-genai

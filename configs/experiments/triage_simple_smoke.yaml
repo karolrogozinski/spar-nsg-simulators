@@ -1,0 +1,7 @@
+# Free sanity check of a dataset: reference strategies only, no API calls.
+name: triage_simple_smoke
+dataset: triage_simple_v1
+simulators:
+  - {backend: baseline, model: follow_g}          # always does what the explanation says
+  - {backend: baseline, model: true_f}            # knows the true rule
+  - {backend: baseline, model: copy_reference}    # repeats the reference decision
