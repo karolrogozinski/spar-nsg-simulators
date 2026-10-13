@@ -37,7 +37,6 @@ pytest -q
 ```
 
 Step-by-step guide with every option: [docs/ADDING_A_DATASET.md](docs/ADDING_A_DATASET.md).
-The original EXP-002 to EXP-004 scripts, datasets and results are kept in `examples/simulator_toy_datasets/`.
 
 ### Acknowledgements
 This project builds on the code of [Mayne et al., 2026](https://arxiv.org/abs/2602.02639),
