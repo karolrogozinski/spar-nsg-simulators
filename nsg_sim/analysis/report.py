@@ -13,7 +13,7 @@ from pathlib import Path
 from nsg_sim.analysis.metrics import METRICS, cluster_ci, group, load_pairs
 
 COLUMNS = ["n", "clusters", "invalid", "acc", "acc_ci", "acc_wo", "nsg", "nsg_ci", "reliance"]
-REPORT_BY = ["simulator", "explanation_type", "level", "evidence_condition"]
+REPORT_BY = ["simulator", "explanation", "level", "evidence_condition"]
 
 
 def summary_rows(pairs: list[dict], keys: list[str]) -> list[dict]:
@@ -57,7 +57,7 @@ def write_run_report(run_dir: Path) -> list[Path]:
     shown = [p for p in pairs if p["evidence_condition"] == "none"] or pairs
     metric = "nsg" if any(p["without"] is not None for p in shown) else "acc"
     title = f"{run_dir.name}: {'NSG' if metric == 'nsg' else 'accuracy'} by level"
-    fig = plot_metric(shown, metric, x="level", lines="explanation_type", panels="simulator",
+    fig = plot_metric(shown, metric, x="level", lines="explanation", panels="simulator",
                       x_order=sorted({p["level"] for p in shown}), title=title)
     fig_path = run_dir / f"{metric}.png"
     fig.savefig(fig_path, dpi=160, bbox_inches="tight", facecolor="white")

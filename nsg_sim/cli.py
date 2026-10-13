@@ -70,25 +70,29 @@ def cmd_preview(args) -> int:
         from nsg_sim.render.llm import LLMRenderer
         llm = LLMRenderer()
     records, manifest = build_dataset(cfg, llm=llm, save=False)
+    from nsg_sim.explanations import explanation_label
     rule_ids = list(dict.fromkeys(r["rule_id"] for r in records))
+    width = max(16, *(len(explanation_label(r)) for r in records))
     show = rule_ids if args.rule == "all" else [args.rule] if args.rule else rule_ids[: args.rules]
     for rid in show:
         rs = [r for r in records if r["rule_id"] == rid and r["evidence_condition"] == "none"]
         print(f"\n=== {rid}   {rs[0]['rule_formal']}   tags {rs[0]['rule_tags']}")
         seen = set()
         for r in rs:
-            key = (r["explanation_type"], r["level"])
+            key = (explanation_label(r), r["level"])
             if key in seen:
                 continue
             seen.add(key)
-            text = r["explanation_text"].replace("\n", "\n" + " " * 26)
-            print(f"  {r['explanation_type']:<16} {r['level']:<4}  {text}")
+            text = r["explanation_text"].replace("\n", "\n" + " " * (width + 10))
+            print(f"  {key[0]:<{width}} {r['level']:<4}  {text}")
     r = next((r for r in records if r["rule_id"] == show[0] and r["discriminating"]), records[0])
     print(f"\n=== example record {r['record_id']}")
     print(f"  reference      {r['description_x']}  -> {r['label_x']}")
     print(f"  counterfactual {r['description_cx']}  -> true {r['label_cx']}, "
           f"explanation says {r['explanation_label_cx']}{'  (discriminating)' if r['discriminating'] else ''}")
     stats = manifest["stats"]
+    if stats.get("skipped_variants"):
+        print(f"\nnot built (the rule is too small or no proxy is left): {', '.join(stats['skipped_variants'])}")
     print(f"\n{len(records)} records, {stats['n_rules']} rules, yes_share {stats['yes_share']}, "
           f"discriminating_share {stats['discriminating_share']}  (nothing saved; `nsg build` to save)")
     return 0

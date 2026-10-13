@@ -30,6 +30,7 @@ features:
     type: numeric
     range: [35, 41]                # integers from 35 to 41
     label: body temperature        # used at P3 and in generic wording
+    yes_when: high                 # high values make sending to a doctor more plausible (substitution keeps this)
     aliases: [temperature, fever]  # other words that count as naming this feature (text checks)
     phrases:
       ">=":
@@ -52,6 +53,7 @@ features:
     range: [40, 160]
     step: 5                        # values 40, 45, ..., 160
     label: heart rate
+    yes_when: high
     aliases: [pulse, bpm]
     phrases:
       ">=":
@@ -73,6 +75,7 @@ features:
     type: numeric
     range: [80, 100]
     label: oxygen saturation
+    yes_when: low
     aliases: [oxygen]
     phrases:
       ">=":
@@ -94,6 +97,7 @@ features:
     type: numeric
     range: [0, 10]
     label: pain score
+    yes_when: high
     aliases: [pain]
     phrases:
       ">=":
@@ -115,6 +119,7 @@ features:
     type: numeric
     range: [0, 14]
     label: symptom duration
+    yes_when: high
     aliases: [symptoms]
     phrases:
       ">=":
@@ -136,6 +141,7 @@ features:
     type: numeric
     range: [1, 95]
     label: age
+    yes_when: high
     aliases: [years old, younger, older, elderly, child]
     sensitive: true                # preferred feature to drop in `omission`
     phrases:

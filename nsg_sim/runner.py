@@ -40,9 +40,9 @@ def select_records(records: list[dict], cfg: ExperimentConfig) -> list[dict]:
         rng = random.Random(smp.seed)
         cells = defaultdict(set)
         for r in rs:
-            cells[(r["rule_id"], r["explanation_type"], r["evidence_condition"])].add(r["item_id"])
+            cells[(r["rule_id"], r["explanation_type"], r.get("edit_size"), r["evidence_condition"])].add(r["item_id"])
         chosen = set()
-        for cell in sorted(cells):
+        for cell in sorted(cells, key=str):
             items = sorted(cells[cell])
             chosen.update(rng.sample(items, min(smp.per_cell, len(items))))
         rs = [r for r in rs if r["item_id"] in chosen]

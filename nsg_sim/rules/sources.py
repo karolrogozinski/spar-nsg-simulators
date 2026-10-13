@@ -14,8 +14,8 @@ from nsg_sim.rules.ast import All, Any, AtLeast, Cond, Node, Unless, from_spec
 class RuleItem:
     id: str
     rule: Node
-    omit: Cond | None = None
-    substitute: tuple[Cond, Cond] | None = None
+    omit: list[Cond] = field(default_factory=list)                    # pinned omissions, in order
+    substitute: list[tuple[Cond, Cond]] = field(default_factory=list)  # pinned (old, proxy) pairs, in order
     shift: tuple[Cond, Cond] | None = None
     distractors: list[str] | None = None
     tags: dict = field(default_factory=dict)
@@ -58,8 +58,10 @@ def _cond(spec) -> Cond:
 def _from_entry(e: RuleEntry) -> RuleItem:
     return RuleItem(
         id=e.id, rule=from_spec(e.rule),
-        omit=_cond(e.omit) if e.omit else None,
-        substitute=(_cond(e.substitute[0]), _cond(e.substitute[1])) if e.substitute else None,
+        omit=[_cond(c) for c in (e.omit if e.omit and isinstance(e.omit[0], list) else [e.omit] if e.omit else [])],
+        substitute=[(_cond(a), _cond(b)) for a, b in
+                    (e.substitute if e.substitute and isinstance(e.substitute[0][0], list) else
+                     [e.substitute] if e.substitute else [])],
         shift=(_cond(e.shift[0]), _cond(e.shift[1])) if e.shift else None,
         distractors=e.distractors, tags=dict(e.tags),
     )

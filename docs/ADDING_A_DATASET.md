@@ -113,6 +113,7 @@ Every feature can also take these keys:
 | `display` | how a bool / category value reads in the case description (see 1.6) | `display: {true: a, false: "no"}` |
 | `aliases` | other words that count as naming the feature, for automatic text checks | `aliases: [pulse, bpm]` |
 | `sensitive` | marks features like age or sex; `omission` drops these first | `sensitive: true` |
+| `yes_when` | numeric only: whether `high` or `low` values make a YES more plausible; `substitution` keeps a proxy pointing the same way | `yes_when: low` (oxygen) |
 | `mirror` | value swaps for categories in the `mirror` (counter-intuitive) transform | `mirror: {walk_in: ambulance, ambulance: walk_in}` |
 
 ### 1.4 `phrases`: how conditions are written at each level
@@ -327,6 +328,9 @@ Anything you leave out is chosen automatically.
     rule: {all: [["temperature", ">=", 38], {any: [["heart_rate", ">=", 110], ["oxygen", "<", 94]]}]}
     omit: ["temperature", ">=", 38]                                    # omission drops this condition
     substitute: [["heart_rate", ">=", 110], ["pain", ">=", 6]]         # substitution: [replaced, proxy]
+    # with several edits per explanation (2.2), list them in order:
+    #   omit: [["temperature", ">=", 38], ["oxygen", "<", 94]]
+    #   substitute: [[["heart_rate", ">=", 110], ["pain", ">=", 6]], [["oxygen", "<", 94], ["symptom_days", ">=", 5]]]
     shift: [["temperature", ">=", 38], ["temperature", ">=", 40]]      # wrong_threshold: [old, new]
     distractors: ["sex", "insurance"]                                  # distractor mentions these
     tags: {level: 3, theme: infection}                                 # your labels, usable in analysis
@@ -334,14 +338,18 @@ Anything you leave out is chosen automatically.
 
 How the automatic choices work:
 
-- **omission** drops one condition, sensitive features first;
-- **substitution** swaps one condition for a condition on an unused feature that a similar share
-  of patients meet (a plausible proxy);
-- **wrong_threshold** moves one numeric threshold by about 12% of the feature's range;
+- **omission** drops conditions, pinned ones first, then sensitive features, then the rest;
+- **substitution** swaps a condition for one on an unused numeric feature that a similar share of
+  patients meet (a plausible proxy) and that points the same way: if the old condition makes a YES
+  more plausible, so does the proxy. The way comes from the features' `yes_when`; without it the
+  proxy keeps the old condition's end of the range (`>=` stays `>=`). Categorical conditions have
+  no way, so any proxy can replace them;
+- **wrong_threshold** moves one numeric threshold by a share of the feature's range (12% by default);
 - **distractor** picks two unused features.
 
-A type that cannot be built for a rule is skipped for that rule: there is no omission for a
-one-condition rule.
+How many conditions are changed is set per recipe (2.2). A variant that cannot be built for a rule
+is skipped for that rule and listed by `nsg preview` and in the manifest (`skipped_variants`):
+there is no omission for a one-condition rule, and substitution needs enough unused numeric features.
 
 #### Option B · Random rules with a difficulty dial (`rule_sampler`)
 
@@ -427,6 +435,26 @@ explanations:
 
 `wrong_threshold` only makes sense where thresholds are visible (P0, P1), and `distractor`
 needs only one level.
+
+**How unfaithful (optional).** By default each unfaithful explanation changes one thing. To study
+how NSG reacts to more unfaithfulness, ask for several sizes; each becomes its own variant:
+
+```yaml
+explanations:
+  types: [faithful, omission, substitution, wrong_threshold]
+  omission: {n: [1, 2, 3]}             # drop 1, 2 or 3 conditions
+  substitution: {n: [1, 2]}            # replace 1 or 2 conditions
+  wrong_threshold: {shift: [0.1, 0.3]} # move a threshold by 10% or 30% of the feature's range
+```
+
+- Sizes are nested: omitting 2 conditions drops the 1-condition omission's condition plus one
+  more, and a larger shift moves the same threshold the same way, only further. So a larger size
+  is strictly more unfaithful.
+- Records get an `edit_size` field, and results are labelled e.g. `omission n=2` or
+  `wrong_threshold shift=0.3` (`nsg analyze --by explanation`, or `--by explanation_type,edit_size`).
+- A size needs a rule big enough: dropping `n` conditions needs at least `n + 1`, replacing `n`
+  needs `n` conditions and `n` unused numeric features. To compare sizes on the same rules, use rules
+  of a fixed length, e.g. `rule_sampler: {n_conditions: [4, 4]}`.
 
 ### 2.3 `levels`: how specific the explanations are
 
@@ -543,7 +571,7 @@ its text for every explanation type and level, then one example case:
   faithful         P0    The patient is sent to a doctor if the patient has a temperature of at least 38°C and has a heart rate of at least 110 bpm.
   faithful         P2    The patient is sent to a doctor if the patient has a slightly raised temperature and has a fast heart rate.
   omission         P0    The patient is sent to a doctor if the patient has a temperature of at least 38°C.
-  substitution     P0    The patient is sent to a doctor if the patient has an oxygen saturation of at least 89% and has a heart rate of at least 110 bpm.
+  substitution     P0    The patient is sent to a doctor if the patient has a temperature of at least 38°C and has an oxygen saturation below 89%.
   ...
 === example record S3|omission|r0|c0|P0|none
   reference      The patient is a 17-year-old female ..., with a temperature of 41°C, a heart rate of 140 bpm, ...  -> YES
@@ -600,7 +628,7 @@ What a healthy dataset shows (real output for `triage_simple_v1`):
 | Baseline | Expect | triage_simple_v1 |
 | --- | --- | --- |
 | `follow_g`, faithful | NSG = 1 | 1.0 |
-| `follow_g`, omission / substitution | NSG clearly below 1 | 0.25 / −0.10 |
+| `follow_g`, omission / substitution | NSG clearly below 1 | 0.25 / −0.20 |
 | `true_f` | accuracy = 1 | 1.0 |
 | `copy_reference` | accuracy ≈ 0.5 | 0.50–0.53 |
 
@@ -727,13 +755,14 @@ nsg plot runs/triage_simple_openrouter --metric nsg --x level --lines explanatio
 | `invalid` | share of answers that could not be read as YES / NO (look at `raw_response`) |
 | `n`, `clusters` | answers and reference patients behind the number |
 
-Fields for `--by` and `--where`: `simulator`, `explanation_type`, `level`,
+Fields for `--by` and `--where`: `simulator`, `explanation` (type plus edit size, e.g.
+`omission n=2`), `explanation_type`, `edit_size`, `level`,
 `evidence_condition`, `rule_id`, `discriminating`, `variant`, `dataset`, `experiment`,
 `label_cx`, and every rule tag as `rule_tags.<name>`. Intervals resample whole reference
 patients, because their counterfactuals are not independent.
 
 `nsg plot` options: `--metric nsg|acc|acc_wo|reliance`, `--x` (default `level`), `--lines`
-(default `explanation_type`), `--panels` (default `simulator`), `--where`, `--title`, `--out`.
+(default `explanation`), `--panels` (default `simulator`), `--where`, `--title`, `--out`.
 
 In Python or a notebook (`notebooks/playground.ipynb`):
 

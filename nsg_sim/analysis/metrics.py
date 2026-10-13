@@ -12,6 +12,7 @@ import random
 from collections import defaultdict
 from pathlib import Path
 
+from nsg_sim.explanations import explanation_label
 from nsg_sim.prompts.parse import parse_answer
 from nsg_sim.storage import load_dataset
 
@@ -40,7 +41,8 @@ def load_pairs(run_dirs: list[Path]) -> list[dict]:
                     "experiment": meta["experiment"], "simulator": row["simulator"], "dataset": rec["dataset"],
                     "variant": rec.get("variant") or "base", "record_id": rid, "item_id": rec["item_id"],
                     "cluster": f"{rec['dataset']}|{rec['cluster_id']}", "rule_id": rec["rule_id"],
-                    "explanation_type": rec["explanation_type"], "level": rec["level"],
+                    "explanation_type": rec["explanation_type"], "edit_size": rec.get("edit_size"),
+                    "explanation": explanation_label(rec), "level": rec["level"],
                     "evidence_condition": rec["evidence_condition"], "discriminating": rec["discriminating"],
                     **{f"rule_tags.{k}": v for k, v in (rec.get("rule_tags") or {}).items()},
                     "valid": pred is not None and (base is None or pred_wo is not None),

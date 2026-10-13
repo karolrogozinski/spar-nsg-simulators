@@ -15,7 +15,7 @@ from collections import Counter
 from nsg_sim.config import DatasetConfig
 from nsg_sim.domain.base import Domain
 from nsg_sim.domain.tabular import TabularDomain, load_domain
-from nsg_sim.explanations import build_variants
+from nsg_sim.explanations import build_variants, explanation_label, variant_key
 from nsg_sim.render import render_explanation
 from nsg_sim.render.checks import check_text
 from nsg_sim.rules.ast import from_spec, to_spec
@@ -33,32 +33,35 @@ def build_records(cfg: DatasetConfig, llm=None) -> tuple[list[dict], dict, Domai
     items = rules_from_config(cfg, domain)
     level_ids = [lvl.id for lvl in cfg.levels]
     cf, ev_cfg = cfg.counterfactuals, cfg.evidence
-    records = []
+    records, skipped = [], []
+    wanted = [variant_key(t, s) for t in cfg.explanations.types for s in cfg.explanations.sizes(t) or [None]]
     for item in items:
         f = item.rule
-        variants = build_variants(item, domain, cfg.explanations.types, random.Random(f"{cfg.seed}|variants|{item.id}"),
-                                  cfg.explanations.n_distractors)
-        gs = [g for g, _ in variants.values()]
+        variants = build_variants(item, domain, cfg.explanations, random.Random(f"{cfg.seed}|variants|{item.id}"))
+        built = {v.key for v in variants}
+        skipped += [f"{item.id}: {k}" for k in wanted if k not in built]
+        gs = [v.g for v in variants]
         focus = [name for name in domain.features if any(name in r.features() for r in [f, *gs])]
-        # texts depend only on (type, level): render once per rule
+        # texts depend only on (variant, level): render once per rule
         texts = {}
-        for etype, (g, extras) in variants.items():
+        for v in variants:
             for lvl in cfg.levels:
-                if lvl.id in cfg.explanations.levels.get(etype, level_ids):
-                    text = render_explanation(g, domain, lvl, extras.get("distractors"), llm)
-                    problems = check_text(text, g, domain, lvl.checks) if lvl.renderer == "template" else []
+                if lvl.id in cfg.explanations.levels.get(v.etype, level_ids):
+                    text = render_explanation(v.g, domain, lvl, v.extras.get("distractors"), llm)
+                    problems = check_text(text, v.g, domain, lvl.checks) if lvl.renderer == "template" else []
                     if problems:
-                        raise ValueError(f"rule {item.id} {etype} {lvl.id}: {problems}: {text}")
-                    formal = g.formal() if lvl.formal else None
-                    if formal and extras.get("distractors"):
-                        formal += "  # also reviewed: " + ", ".join(extras["distractors"])
-                    texts[(etype, lvl.id)] = (text, formal)
+                        raise ValueError(f"rule {item.id} {v.key} {lvl.id}: {problems}: {text}")
+                    formal = v.g.formal() if lvl.formal else None
+                    if formal and v.extras.get("distractors"):
+                        formal += "  # also reviewed: " + ", ".join(v.extras["distractors"])
+                    texts[(v.key, lvl.id)] = (text, formal)
 
         for ref in range(cf.n_reference):
             target = ref % 2 == 0  # alternate YES, NO references
             x = _reference(domain, f, gs, target, cfg, item.id, ref, focus)
-            for etype, (g, extras) in variants.items():
-                rng = random.Random(f"{cfg.seed}|cx|{item.id}|{etype}|{ref}")
+            for v in variants:
+                etype, g, extras = v.etype, v.g, v.extras
+                rng = random.Random(f"{cfg.seed}|cx|{item.id}|{v.key}|{ref}")
                 buckets = candidate_buckets(domain, x, f, None if g == f else g, rng, focus, cf.pool_size)
                 cxs = select_counterfactuals(buckets, cf.n_per_reference, cf.balance)
                 evidence_sets, k_levels = {}, []
@@ -67,9 +70,9 @@ def build_records(cfg: DatasetConfig, llm=None) -> tuple[list[dict], dict, Domai
                 if k_levels:
                     evidence_sets = make_evidence(domain, buckets, rng, ev_cfg.n, k_levels, f, g, [x, *cxs])
                 for lvl in cfg.levels:
-                    if (etype, lvl.id) not in texts:
+                    if (v.key, lvl.id) not in texts:
                         continue
-                    text, formal = texts[(etype, lvl.id)]
+                    text, formal = texts[(v.key, lvl.id)]
                     conditions = [("none", None, [])]
                     if evidence_sets and lvl.id in ev_cfg.levels:
                         conditions += [(f"k{k}", k, evidence_sets[k]) for k in k_levels]
@@ -79,12 +82,12 @@ def build_records(cfg: DatasetConfig, llm=None) -> tuple[list[dict], dict, Domai
                                     for e in ev]
                         for j, cx in enumerate(cxs):
                             f_cx, g_cx = evaluate(f, domain, cx), evaluate(g, domain, cx)
-                            item_id = f"{item.id}|{etype}|r{ref}|c{j}"
-                            records.append({
+                            item_id = f"{item.id}|{v.key}|r{ref}|c{j}"
+                            record = {
                                 "dataset": cfg.name,
                                 "record_id": f"{item_id}|{lvl.id}|{cond}",
                                 "item_id": item_id,
-                                "cluster_id": f"{item.id}|{etype}|r{ref}",
+                                "cluster_id": f"{item.id}|{v.key}|r{ref}",
                                 "rule_id": item.id,
                                 "rule_tags": item.tags,
                                 "explanation_type": etype,
@@ -110,10 +113,15 @@ def build_records(cfg: DatasetConfig, llm=None) -> tuple[list[dict], dict, Domai
                                 "variant": None,
                                 "paired_record_id": None,
                                 "seed": cfg.seed,
-                            })
+                            }
+                            if v.size is not None:  # only when the recipe asks for edit sizes
+                                record["edit_size"] = v.size
+                            records.append(record)
     manifest = {"description": cfg.description, "config": cfg.model_dump(mode="json"),
                 "domain": _domain_info(domain), "levels": [lvl.model_dump(mode="json") for lvl in cfg.levels],
                 "stats": stats(records)}
+    if skipped:  # variants a rule cannot have, e.g. omitting 2 of 2 conditions or no proxy left
+        manifest["stats"]["skipped_variants"] = skipped
     return records, manifest, domain
 
 
@@ -134,7 +142,7 @@ def _domain_info(domain: Domain) -> dict:
 
 
 def stats(records: list[dict]) -> dict:
-    cells = Counter((r["explanation_type"], r["level"], r["evidence_condition"]) for r in records)
+    cells = Counter((explanation_label(r), r["level"], r["evidence_condition"]) for r in records)
     none = [r for r in records if r["evidence_condition"] == "none"]
     return {
         "records_per_cell": {"|".join(k): v for k, v in sorted(cells.items())},

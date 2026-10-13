@@ -94,6 +94,6 @@ def test_nsg_run_writes_summary_and_figure(built, tmp_path):
     assert main(["run", str(cfg), "--runs-dir", str(tmp_path / "runs")]) == 0
     out = tmp_path / "runs" / "report_test"
     rows = list(csv.DictReader((out / "summary.csv").open()))
-    faithful = [r for r in rows if r["explanation_type"] == "faithful"]
+    faithful = [r for r in rows if r["explanation"] == "faithful"]
     assert faithful and all(float(r["nsg"]) == 1.0 for r in faithful)
     assert (out / "nsg.png").stat().st_size > 0

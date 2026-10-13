@@ -45,6 +45,7 @@ class Feature:
     mirror_map: dict = field(default_factory=dict)  # categorical value swaps used by `mirror`
     sensitive: bool = False         # e.g. gender, region: candidates for hidden causes
     aliases: list = field(default_factory=list)     # other words that name the feature in texts (text checks)
+    yes_when: str | None = None     # numeric: "high" or "low" values make a YES decision more plausible
 
     def names(self) -> list[str]:
         """Words that count as mentioning the feature: its label and aliases."""
@@ -174,5 +175,11 @@ def feature_from_config(name: str, cfg: dict) -> Feature:
         name=name, kind=kind, label=cfg.get("label", name.replace("_", " ")), values=values, step=step,
         phrases=cfg.get("phrases", {}), overrides=cfg.get("overrides", []),
         mirror_map=cfg.get("mirror", {}), sensitive=cfg.get("sensitive", False),
-        aliases=list(cfg.get("aliases", [])),
+        aliases=list(cfg.get("aliases", [])), yes_when=_yes_when(name, kind, cfg.get("yes_when")),
     )
+
+
+def _yes_when(name: str, kind: str, value):
+    if value is not None and (kind != "numeric" or value not in ("high", "low")):
+        raise ValueError(f"feature {name}: yes_when must be 'high' or 'low' on a numeric feature")
+    return value

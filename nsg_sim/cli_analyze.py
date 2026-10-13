@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-DEFAULT_BY = "simulator,explanation_type,level,evidence_condition"
+DEFAULT_BY = "simulator,explanation,level,evidence_condition"
 
 
 def register(sub) -> None:
@@ -12,7 +12,7 @@ def register(sub) -> None:
     p.add_argument("runs", nargs="+", type=Path)
     p.add_argument("--by", default=DEFAULT_BY,
                    help=f"comma-separated grouping fields (default {DEFAULT_BY}); "
-                        "e.g. variant, rule_tags.structure, rule_tags.n_conditions, discriminating")
+                        "e.g. explanation_type, edit_size, variant, rule_tags.n_conditions, discriminating")
     p.add_argument("--where", action="append", default=[], help="field=value filters, repeatable")
     p.add_argument("--csv", type=Path, help="also write the table as CSV")
     p.set_defaults(func=cmd_analyze)
@@ -25,7 +25,7 @@ def register(sub) -> None:
     p.add_argument("runs", nargs="+", type=Path)
     p.add_argument("--metric", default="nsg", choices=["nsg", "acc", "acc_wo", "reliance"])
     p.add_argument("--x", default="level")
-    p.add_argument("--lines", default="explanation_type")
+    p.add_argument("--lines", default="explanation")
     p.add_argument("--panels", default="simulator")
     p.add_argument("--where", action="append", default=[], help="field=value filters, repeatable")
     p.add_argument("--title")

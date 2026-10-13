@@ -1,6 +1,6 @@
 """Line plots of a metric across specificity levels (or any other ordered field).
 
-One line per value of `lines` (e.g. explanation_type, variant), one panel per value of `panels`
+One line per value of `lines` (e.g. explanation, variant), one panel per value of `panels`
 (e.g. simulator), 95% cluster-bootstrap bands, direct labels at the line ends. Colours follow a
 fixed categorical order so the same line keeps its colour across figures.
 """
@@ -48,7 +48,7 @@ def _label_ends(ax, ends, last_x, gap_frac=0.06):
         ax.annotate(text, (x, y), xytext=(8, -10), textcoords="offset points", va="top", fontsize=9, color=INK_2)
 
 
-def plot_metric(pairs: list[dict], metric: str = "nsg", x: str = "level", lines: str = "explanation_type",
+def plot_metric(pairs: list[dict], metric: str = "nsg", x: str = "level", lines: str = "explanation",
                 panels: str = "simulator", x_order: list | None = None, line_order: list | None = None,
                 title: str | None = None):
     stat = METRICS[metric]

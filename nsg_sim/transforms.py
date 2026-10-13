@@ -92,7 +92,7 @@ def derive_records(base_records: list[dict], base_domain: Domain, transform: str
         f = from_spec(r["rule"]).map_conditions(map_cond)
         g = from_spec(r["described_rule"]).map_conditions(map_cond)
         distractors = [map_feature(d) for d in r["distractors"]] if r["distractors"] else None
-        tkey = (r["rule_id"], r["explanation_type"], r["level"])
+        tkey = (r["rule_id"], r["explanation_type"], r.get("edit_size"), r["level"])
         if tkey not in texts:
             lvl = by_id[r["level"]]
             formal = g.formal() if lvl.formal else None

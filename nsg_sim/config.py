@@ -24,8 +24,8 @@ class RuleEntry(Strict):
 
     id: str
     rule: AnyType                                   # rule spec (see rules/ast.py)
-    omit: list | None = None                        # condition dropped by `omission`
-    substitute: list[list] | None = None            # [old condition, proxy condition]
+    omit: list | None = None                        # condition(s) dropped by `omission`: one condition or a list
+    substitute: list[list] | None = None            # [old condition, proxy condition], or a list of such pairs
     shift: list[list] | None = None                 # [old condition, condition with another threshold]
     distractors: list[str] | None = None            # features mentioned by `distractor`
     tags: dict = Field(default_factory=dict)        # free metadata copied into records (e.g. level: 2)
@@ -62,10 +62,40 @@ class RuleSampler(Strict):
     tries: int = 200
 
 
+class EditCount(Strict):
+    """How many conditions an omission / substitution changes; one explanation variant per value."""
+
+    n: list[int] = Field(default_factory=lambda: [1])
+
+    @model_validator(mode="after")
+    def _check(self):
+        if not self.n or any(k < 1 for k in self.n) or len(set(self.n)) != len(self.n):
+            raise ValueError(f"n must be distinct numbers >= 1, got {self.n}")
+        return self
+
+
+DEFAULT_SHIFT = 0.12
+
+
+class ThresholdShift(Strict):
+    """How far wrong_threshold moves a threshold, as a share of the feature's range; one variant per value."""
+
+    shift: list[float] = Field(default_factory=lambda: [DEFAULT_SHIFT])
+
+    @model_validator(mode="after")
+    def _check(self):
+        if not self.shift or any(not 0 < s < 1 for s in self.shift) or len(set(self.shift)) != len(self.shift):
+            raise ValueError(f"shift must be distinct shares between 0 and 1, got {self.shift}")
+        return self
+
+
 class Explanations(Strict):
     types: list[str] = Field(default_factory=lambda: ["faithful"])
     levels: dict[str, list[str]] = Field(default_factory=dict)  # type -> levels it is built for (default: all)
     n_distractors: int = 2
+    omission: EditCount = Field(default_factory=EditCount)
+    substitution: EditCount = Field(default_factory=EditCount)
+    wrong_threshold: ThresholdShift = Field(default_factory=ThresholdShift)
 
     @model_validator(mode="after")
     def _check(self):
@@ -73,6 +103,16 @@ class Explanations(Strict):
             if t not in EXPLANATION_TYPES:
                 raise ValueError(f"unknown explanation type {t!r}; choose from {EXPLANATION_TYPES}")
         return self
+
+    def sizes(self, etype: str) -> list | None:
+        """Edit sizes to build for a type, or None when the type uses the single default edit."""
+        if etype in ("omission", "substitution"):
+            n = getattr(self, etype).n
+            return None if n == [1] else n
+        if etype == "wrong_threshold":
+            shift = self.wrong_threshold.shift
+            return None if shift == [DEFAULT_SHIFT] else shift
+        return None
 
 
 class Counterfactuals(Strict):
