@@ -1,0 +1,7 @@
+# Prior-free twin of triage_sim_v1: features renamed (feature A, flag B, category C ...) and numbers
+# rescaled to 0-100, so a simulator cannot use what it knows about patients. Labels identical
+# record by record; together with triage_sim_counter_v1 it separates rule-following from priors.
+name: triage_sim_abstract_v1
+description: abstract transform of triage_sim_v1.
+derive_from: triage_sim_v1
+transform: abstract

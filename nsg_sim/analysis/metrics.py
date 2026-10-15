@@ -45,6 +45,7 @@ def load_pairs(run_dirs: list[Path]) -> list[dict]:
                     "explanation": explanation_label(rec), "level": rec["level"],
                     "evidence_condition": rec["evidence_condition"], "discriminating": rec["discriminating"],
                     **{f"rule_tags.{k}": v for k, v in (rec.get("rule_tags") or {}).items()},
+                    **{f"model.{k}": v for k, v in (row.get("tags") or {}).items()},
                     "valid": pred is not None and (base is None or pred_wo is not None),
                     "with": pred == rec["label_cx"], "without": (pred_wo == rec["label_cx"]) if base else None,
                     "follows_g": pred == rec["explanation_label_cx"], "label_cx": rec["label_cx"],

@@ -147,10 +147,10 @@ async def _run_simulator(cfg: ExperimentConfig, sim, path: Path, todo: list[tupl
         prediction = parse_answer(resp.text)
         fh.write(json.dumps({
             "record_id": record["record_id"], "item_id": record["item_id"], "cluster_id": record["cluster_id"],
-            "simulator": sim.name, "backend": sim.backend, "model": sim.model,
+            "simulator": sim.name, "backend": sim.backend, "model": sim.model, "tags": sim.tags,
             "reasoning_effort": sim.reasoning_effort, "with_explanation": with_expl, "prompt_sha": sha,
             "prediction": prediction, "raw_response": resp.text, "reasoning": resp.reasoning,
-            "finish_reason": resp.finish_reason, "latency_s": resp.latency_s,
+            "finish_reason": resp.finish_reason, "latency_s": resp.latency_s, "provider": resp.provider,
             "prompt_tokens": resp.prompt_tokens, "completion_tokens": resp.completion_tokens, "error": resp.error,
         }) + "\n")
         fh.flush()

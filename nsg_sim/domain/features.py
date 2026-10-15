@@ -45,7 +45,8 @@ class Feature:
     mirror_map: dict = field(default_factory=dict)  # categorical value swaps used by `mirror`
     sensitive: bool = False         # e.g. gender, region: candidates for hidden causes
     aliases: list = field(default_factory=list)     # other words that name the feature in texts (text checks)
-    yes_when: str | None = None     # numeric: "high" or "low" values make a YES decision more plausible
+    yes_when: object = None         # what makes a YES more plausible: "high" / "low" (numeric),
+                                    # true / false (bool), a list of values (categorical)
 
     def names(self) -> list[str]:
         """Words that count as mentioning the feature: its label and aliases."""
@@ -91,6 +92,27 @@ class Feature:
             return {">=": ("<", r + step), ">": ("<", r), "<=": (">=", r), "<": (">=", r + step),
                     "==": ("==", r), "!=": ("!=", r)}[op]
         return op, self.reflect(value)
+
+    def supports_yes(self, op: str, value) -> bool | None:
+        """Whether meeting `feature op value` makes a YES more plausible (None: no `yes_when` to tell)."""
+        if self.yes_when is None:
+            return None
+        if self.kind == "numeric":
+            side = {">=": "high", ">": "high", "<=": "low", "<": "low"}.get(op)
+            return None if side is None else side == self.yes_when
+        if self.kind == "bool":
+            if op not in ("==", "!="):
+                return None
+            return ((value is True) == (op == "==")) == self.yes_when
+        if op == "==":
+            return value in self.yes_when
+        if op == "!=":  # clear only when every remaining value points the same way
+            rest = {v for v in self.values if v != value}
+            if rest <= set(self.yes_when):
+                return True
+            if not rest & set(self.yes_when):
+                return False
+        return None
 
     # --- phrases ----------------------------------------------------------
 
@@ -180,6 +202,11 @@ def feature_from_config(name: str, cfg: dict) -> Feature:
 
 
 def _yes_when(name: str, kind: str, value):
-    if value is not None and (kind != "numeric" or value not in ("high", "low")):
-        raise ValueError(f"feature {name}: yes_when must be 'high' or 'low' on a numeric feature")
+    if value is None:
+        return None
+    ok = {"numeric": value in ("high", "low"), "bool": isinstance(value, bool),
+          "categorical": isinstance(value, list)}[kind]
+    if not ok:
+        raise ValueError(f"feature {name}: yes_when must be 'high' / 'low' (numeric), true / false (bool) "
+                         f"or a list of values (categorical), got {value!r}")
     return value

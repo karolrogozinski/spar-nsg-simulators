@@ -16,6 +16,9 @@ from nsg_sim.prompts.parse import parse_answer
     ("[ANSWER] NO ... on reflection\n[ANSWER] YES", "YES"),  # last answer wins
     ("[ANSWER]\nYES/NO", None),                             # hedge
     ("I think the answer is yes.", None),
+    ("YES\n\nCONFIDENCE\nMEDIUM", "YES"),                   # bare answer line (llama 3.1 8b)
+    ("**NO**", "NO"),
+    ("No answer here.\nYES", None),                        # only the first line counts
     ("", None),
     (None, None),
 ])

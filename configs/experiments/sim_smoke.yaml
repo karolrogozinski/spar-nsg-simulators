@@ -1,0 +1,7 @@
+# Free sanity check of the simulator-experiment datasets: baselines on both twins.
+name: sim_smoke
+dataset: triage_sim_v1
+simulators:
+  - {backend: baseline, model: follow_g}
+  - {backend: baseline, model: true_f}
+  - {backend: baseline, model: copy_reference}

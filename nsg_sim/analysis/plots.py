@@ -20,6 +20,11 @@ METRIC_LABELS = {"nsg": "NSG", "acc": "accuracy with explanation", "acc_wo": "ac
                  "reliance": "share following the explanation (discriminating)"}
 
 
+def _order(value):
+    """Numbers in numeric order (model sizes 4 < 12 < 27), everything else alphabetically after them."""
+    return (0, value, "") if isinstance(value, (int, float)) else (1, 0, str(value))
+
+
 def _style(ax):
     ax.grid(axis="y", color=GRID, linewidth=1)
     ax.set_axisbelow(True)
@@ -52,14 +57,14 @@ def plot_metric(pairs: list[dict], metric: str = "nsg", x: str = "level", lines:
                 panels: str = "simulator", x_order: list | None = None, line_order: list | None = None,
                 title: str | None = None):
     stat = METRICS[metric]
-    panel_vals = sorted({p[panels] for p in pairs}, key=str)
-    x_vals = x_order or sorted({p[x] for p in pairs}, key=str)
-    line_vals = line_order or sorted({p[lines] for p in pairs}, key=str)
+    panel_vals = sorted({p.get(panels) for p in pairs}, key=_order)
+    x_vals = x_order or sorted({p.get(x) for p in pairs}, key=_order)
+    line_vals = line_order or sorted({p.get(lines) for p in pairs}, key=_order)
     colors = {v: SLOTS[i % len(SLOTS)] for i, v in enumerate(line_vals)}
     fig, axes = plt.subplots(1, len(panel_vals), figsize=(5.6 * len(panel_vals) + 1.4, 4.6), sharey=True, squeeze=False)
     all_ends = []
     for ax, pv in zip(axes[0], panel_vals):
-        cells = group([p for p in pairs if p[panels] == pv], [lines, x])
+        cells = group([p for p in pairs if p.get(panels) == pv], [lines, x])
         ends = []
         for lv in line_vals:
             pts = [(i, cells[(lv, xv)]) for i, xv in enumerate(x_vals) if (lv, xv) in cells]

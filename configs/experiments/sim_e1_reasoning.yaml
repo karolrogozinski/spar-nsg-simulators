@@ -1,0 +1,11 @@
+# E1 (pilot): does reasoning effort change how well NSG separates faithful from omission
+# explanations? Same weights, one setting changed. Intuitive rules; the counter twin follows
+# as sim_e1_reasoning_counter once this one looks sane.
+name: sim_e1_reasoning
+dataset: triage_sim_v1
+sample: {per_cell: 8, seed: 0}
+simulators:
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: low, label: gpt-oss-20b@low}
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: medium, label: gpt-oss-20b@medium}
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: high, label: gpt-oss-20b@high}
+run: {concurrency: 8, max_tokens: 8192, max_requests: 3000}

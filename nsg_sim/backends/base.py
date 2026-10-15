@@ -38,6 +38,7 @@ class Response:
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
     error: str | None = None
+    provider: str | None = None       # who served the request, when the API says (e.g. OpenRouter)
 
 
 class Backend:

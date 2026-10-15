@@ -1,0 +1,6 @@
+# Counter-intuitive twin of triage_sim_v2: every threshold and value mirrored (e.g. "has a fever"
+# becomes "does not have a raised temperature"), labels identical record by record.
+name: triage_sim_counter_v2
+description: mirror transform of triage_sim_v2.
+derive_from: triage_sim_v2
+transform: mirror

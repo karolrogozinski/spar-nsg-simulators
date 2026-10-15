@@ -16,10 +16,14 @@ COLUMNS = ["n", "clusters", "invalid", "acc", "acc_ci", "acc_wo", "nsg", "nsg_ci
 REPORT_BY = ["simulator", "explanation", "level", "evidence_condition"]
 
 
+def _order(value):
+    return (0, value, "") if isinstance(value, (int, float)) and not isinstance(value, bool) else (1, 0, str(value))
+
+
 def summary_rows(pairs: list[dict], keys: list[str]) -> list[dict]:
     """One row per group: counts, metrics, and 95% cluster-bootstrap intervals for acc and NSG."""
     rows = []
-    for k, cell in sorted(group(pairs, keys).items(), key=lambda kv: [str(x) for x in kv[0]]):
+    for k, cell in sorted(group(pairs, keys).items(), key=lambda kv: [_order(x) for x in kv[0]]):
         row = dict(zip(keys, k))
         row.update({"n": len(cell), "invalid": round(1 - sum(p["valid"] for p in cell) / len(cell), 3),
                     "clusters": len({p["cluster"] for p in cell})})

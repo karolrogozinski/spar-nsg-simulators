@@ -57,3 +57,29 @@ def test_sampler_is_deterministic():
     one = [i.rule for i in sample_rules(RuleSampler(preset="hard", n_rules=4), TRIAGE, random.Random(3))]
     two = [i.rule for i in sample_rules(RuleSampler(preset="hard", n_rules=4), TRIAGE, random.Random(3))]
     assert one == two
+
+
+def _polarities(node, want=True):
+    """(condition, the direction it should point) for every condition of a rule."""
+    if isinstance(node, Cond):
+        return [(node, want)]
+    if isinstance(node, Not):
+        return _polarities(node.item, not want)
+    if isinstance(node, Unless):
+        return _polarities(node.base, want) + _polarities(node.exception, not want)
+    return [p for i in node.items for p in _polarities(i, want)]
+
+
+@pytest.mark.parametrize("direction,root", [("intuitive", True), ("counter", False)])
+def test_sampler_direction(direction, root):
+    cfg = RuleSampler(preset="very_hard", n_rules=8, n_conditions=[3, 6], direction=direction)
+    for item in sample_rules(cfg, TRIAGE, random.Random(5)):
+        for cond, want in _polarities(item.rule, root):
+            assert TRIAGE.feature(cond.feature).supports_yes(cond.op, cond.value) is want, (item.rule.formal(), cond)
+
+
+def test_categorical_direction_is_only_clear_when_all_other_values_agree():
+    arrival = TRIAGE.feature("arrival")          # yes_when: [ambulance, referral]
+    assert arrival.supports_yes("!=", "walk_in") is True
+    assert arrival.supports_yes("==", "walk_in") is False
+    assert arrival.supports_yes("!=", "ambulance") is None   # leaves walk_in and referral: mixed

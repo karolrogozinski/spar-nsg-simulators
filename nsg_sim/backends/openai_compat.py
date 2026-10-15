@@ -61,9 +61,15 @@ class OpenAICompatible(Backend):
                     temperature=self.sim.temperature, max_tokens=max_tokens, timeout=self.run.timeout, **self._extra())
                 msg = resp.choices[0].message
                 usage = resp.usage
+                reasoning = getattr(msg, "reasoning", None) or getattr(msg, "reasoning_content", None)
+                if not msg.content and not reasoning:
+                    # some providers return an empty message although tokens were generated: retry,
+                    # and record an error if it persists so a resumed run asks again
+                    raise RuntimeError(f"empty response from provider {getattr(resp, 'provider', None)}")
                 return Response(
+                    provider=getattr(resp, "provider", None),
                     text=msg.content,
-                    reasoning=getattr(msg, "reasoning", None) or getattr(msg, "reasoning_content", None),
+                    reasoning=reasoning,
                     finish_reason=resp.choices[0].finish_reason,
                     latency_s=round(time.monotonic() - start, 2),
                     prompt_tokens=usage.prompt_tokens if usage else None,

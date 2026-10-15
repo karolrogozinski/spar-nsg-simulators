@@ -12,7 +12,7 @@ def register(sub) -> None:
     p.add_argument("runs", nargs="+", type=Path)
     p.add_argument("--by", default=DEFAULT_BY,
                    help=f"comma-separated grouping fields (default {DEFAULT_BY}); "
-                        "e.g. explanation_type, edit_size, variant, rule_tags.n_conditions, discriminating")
+                        "e.g. explanation_type, edit_size, variant, rule_tags.n_conditions, model.size_b, discriminating")
     p.add_argument("--where", action="append", default=[], help="field=value filters, repeatable")
     p.add_argument("--csv", type=Path, help="also write the table as CSV")
     p.set_defaults(func=cmd_analyze)

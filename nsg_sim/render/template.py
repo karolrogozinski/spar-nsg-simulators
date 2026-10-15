@@ -15,7 +15,7 @@ connector is visible:
       - had surgery recently
       - has a temperature of at least 38°C
     - has an oxygen saturation below 90%
-    unless the patient came with a GP referral.
+    unless the patient arrived with a GP referral.
 """
 
 from __future__ import annotations

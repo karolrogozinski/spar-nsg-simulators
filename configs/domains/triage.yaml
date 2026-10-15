@@ -163,12 +163,14 @@ features:
   chronic:
     type: bool
     label: chronic condition
+    yes_when: true                 # having it makes sending to a doctor more plausible
     phrases: {"true": "has a chronic condition", "false": "has no chronic condition"}
     display: {true: a, false: "no"}      # how the value reads in the profile
 
   surgery:
     type: bool
     label: recent surgery
+    yes_when: true
     aliases: [surgery]
     phrases: {"true": "had surgery recently", "false": "has not had recent surgery"}
     display: {true: a, false: "no"}
@@ -177,10 +179,12 @@ features:
     type: categorical
     values: [walk_in, ambulance, referral]
     label: arrival
-    aliases: [arrived, arrive, walked in, walk in, ambulance, referral]
+    yes_when: [ambulance, referral]  # categorical: values that make YES more plausible
+    aliases: [arrived, arrive, on foot, ambulance, referral]
+    # explanation wording uses the same words as the profile (display): "arrived on foot" in both
     phrases:
-      values: {walk_in: "walked in", ambulance: "arrived by ambulance", referral: "came with a GP referral"}
-      not_values: {walk_in: "did not walk in", ambulance: "did not arrive by ambulance", referral: "did not come with a GP referral"}
+      values: {walk_in: "arrived on foot", ambulance: "arrived by ambulance", referral: "arrived with a GP referral"}
+      not_values: {walk_in: "did not arrive on foot", ambulance: "did not arrive by ambulance", referral: "did not arrive with a GP referral"}
     display: {walk_in: on foot, ambulance: by ambulance, referral: with a GP referral}
     mirror: {walk_in: ambulance, ambulance: walk_in}   # value swaps used by the `mirror` transform
 

@@ -97,3 +97,13 @@ def test_nsg_run_writes_summary_and_figure(built, tmp_path):
     faithful = [r for r in rows if r["explanation"] == "faithful"]
     assert faithful and all(float(r["nsg"]) == 1.0 for r in faithful)
     assert (out / "nsg.png").stat().st_size > 0
+
+
+def test_simulator_tags_reach_the_analysis(built, tmp_path):
+    from nsg_sim.analysis.report import summary_rows
+    sims = [{"backend": "baseline", "model": "follow_g", "tags": {"family": "a", "size_b": 12}},
+            {"backend": "baseline", "model": "copy_reference", "tags": {"family": "a", "size_b": 4}}]
+    out = run_experiment(experiment(simulators=sims), root=tmp_path, log=lambda *_: None)
+    pairs = load_pairs([out])
+    assert {(p["model.family"], p["model.size_b"]) for p in pairs} == {("a", 12), ("a", 4)}
+    assert [r["model.size_b"] for r in summary_rows(pairs, ["model.size_b"])] == [4, 12]   # numeric order

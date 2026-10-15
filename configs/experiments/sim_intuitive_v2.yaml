@@ -1,0 +1,19 @@
+# EXP-005/006 repeated on the intuitive twin with fixed arrival wording (triage_sim_v2: "arrived on
+# foot" like the profile, instead of "did not walk in"). Same cases and sample as before
+# (per_cell 8, seed 0); the counter and abstract twins kept identical texts, so their runs stand.
+name: sim_intuitive_v2
+dataset: triage_sim_v2
+sample: {per_cell: 8, seed: 0}
+simulators:
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: low, label: gpt-oss-20b@low,
+     tags: {family: gpt-oss, size_b: 20, reasoning: low}}
+  # providers are pinned: on OpenRouter the same model can differ between providers (quantisation),
+  # and DeepInfra returned empty answers for gemma-3-12b. gemma-3-4b (DeepInfra only, rate-limited
+  # on 2026-10-14) is added when available.
+  - {backend: openrouter, model: "google/gemma-3-12b-it", label: gemma-3-12b, tags: {family: gemma3, size_b: 12, reasoning: none},
+     params: {extra_body: {provider: {order: [NextBit], allow_fallbacks: false}}}}
+  - {backend: openrouter, model: "google/gemma-3-27b-it", label: gemma-3-27b, tags: {family: gemma3, size_b: 27, reasoning: none},
+     params: {extra_body: {provider: {order: [NextBit], allow_fallbacks: false}}}}
+  - {backend: openrouter, model: "meta-llama/llama-3.1-8b-instruct", label: llama-3.1-8b, tags: {family: llama3.1, size_b: 8, reasoning: none},
+     params: {extra_body: {provider: {order: [DeepInfra], allow_fallbacks: false}}}}
+run: {concurrency: 8, max_tokens: 4096, timeout: 90, max_requests: 2500}

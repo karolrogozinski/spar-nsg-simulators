@@ -34,7 +34,7 @@ def test_nested_rules_become_indented_lists():
         "  - had surgery recently\n"
         "  - has a temperature of at least 38°C\n"
         "- has an oxygen saturation below 90%\n"
-        "unless the patient came with a GP referral.")
+        "unless the patient arrived with a GP referral.")
 
 
 def test_negated_groups():
@@ -65,3 +65,14 @@ def test_sampled_rules_name_every_feature_and_p2_has_no_digits():
                                                                        require_thresholds=True)), exact
             assert not re.search(r"\d", qual), qual
             assert "equal to" not in exact, exact          # no generic fallback wording on triage
+
+
+def test_explanation_wording_matches_the_profile():
+    """A categorical value must read the same in explanations and in the case description: gpt-oss
+    misread "did not walk in" against a profile saying "arrived on foot" (EXP-005/006)."""
+    for name, f in TRIAGE.features.items():
+        shown = TRIAGE.display.get(name, {})
+        if f.kind != "categorical" or not shown:
+            continue
+        for v in f.values:
+            assert str(shown[v]) in f.phrase("==", v, "exact"), (name, v, shown[v], f.phrase("==", v, "exact"))

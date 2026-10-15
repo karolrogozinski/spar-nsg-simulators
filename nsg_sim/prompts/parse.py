@@ -23,7 +23,10 @@ def parse_answer(text: str | None) -> str | None:
     text = re.sub(r"<think>.*?(</think>|$)", "", text or "", flags=re.DOTALL)
     matches = ANSWER_HEADER.findall(text)
     if not matches:
-        return None
+        # no answer header: accept a bare YES / NO as the first line (e.g. "YES\n\nCONFIDENCE\nMEDIUM")
+        first = next((line for line in text.splitlines() if line.strip()), "")
+        bare = first.strip().strip("*.:# ").upper()
+        return bare if bare in ("YES", "NO") else None
     answer = matches[-1].strip().upper().strip("*.: ")
     if "YES" in answer and "NO" in answer.replace("NOT", ""):
         return None

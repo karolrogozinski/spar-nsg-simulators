@@ -113,7 +113,7 @@ Every feature can also take these keys:
 | `display` | how a bool / category value reads in the case description (see 1.6) | `display: {true: a, false: "no"}` |
 | `aliases` | other words that count as naming the feature, for automatic text checks | `aliases: [pulse, bpm]` |
 | `sensitive` | marks features like age or sex; `omission` drops these first | `sensitive: true` |
-| `yes_when` | numeric only: whether `high` or `low` values make a YES more plausible; `substitution` keeps a proxy pointing the same way | `yes_when: low` (oxygen) |
+| `yes_when` | what makes a YES more plausible: `high` / `low` (numeric), `true` / `false` (bool), a list of values (categorical). Used by `substitution` (the proxy points the same way) and by the sampler's `direction` | `yes_when: low` (oxygen), `yes_when: [ambulance, referral]` |
 | `mirror` | value swaps for categories in the `mirror` (counter-intuitive) transform | `mirror: {walk_in: ambulance, ambulance: walk_in}` |
 
 ### 1.4 `phrases`: how conditions are written at each level
@@ -178,8 +178,8 @@ arrival:
   type: categorical
   values: [walk_in, ambulance, referral]
   phrases:
-    values: {walk_in: "walked in", ambulance: "arrived by ambulance", referral: "came with a GP referral"}
-    not_values: {walk_in: "did not walk in", ambulance: "did not arrive by ambulance", referral: "did not come with a GP referral"}
+    values: {walk_in: "arrived on foot", ambulance: "arrived by ambulance", referral: "arrived with a GP referral"}
+    not_values: {walk_in: "did not arrive on foot", ambulance: "did not arrive by ambulance", referral: "did not arrive with a GP referral"}
 
 sex:
   type: categorical
@@ -188,6 +188,11 @@ sex:
 ```
 
 Bools and categories read the same at P0, P1 and P2 (there is no number to hide).
+
+**Use the same words in phrases and in the profile.** If the profile says "arrived on foot", the
+explanation must say "arrived on foot" / "did not arrive on foot", not "walked in". A simulator
+does not reliably connect different wordings of the same value: gpt-oss-20b misread "did not walk
+in" against "arrived on foot" in 4 of its 5 errors on exact explanations (EXP-006).
 
 ### 1.5 `explanation`: sentence frames
 
@@ -317,7 +322,7 @@ The patient is sent to a doctor if the patient meets at least one of the followi
   - had surgery recently
   - has a temperature of at least 38°C
 - has an oxygen saturation below 90%
-unless the patient came with a GP referral.
+unless the patient arrived with a GP referral.
 ```
 
 **Optional per rule**: control how the unfaithful explanations change it, and label it.
@@ -380,6 +385,7 @@ All settings (each overrides the preset):
 | `rule_yes_rate` | `[min, max]` share of patients the whole rule sends to a doctor | `[0.15, 0.85]` | `rule_yes_rate: [0.3, 0.7]` |
 | `features` | which features rules may use | all | `features: {exclude: [sex, insurance]}` or `{include: [temperature, oxygen, pain]}` |
 | `ops` | which operators | all six | `ops: [">=", "<", "=="]` |
+| `direction` | `intuitive`: every condition points the way the features' `yes_when` says (exceptions the other way); `counter`: the opposite; features without `yes_when` are left out | `any` | `direction: intuitive` |
 
 Connector names: `and`, `or`, `unless`, `at_least` (with `k: [min, max]`), `not`. A weight of 0
 or leaving a connector out disables it. Each feature appears at most once in a sampled rule.

@@ -1,0 +1,17 @@
+# E2: the EXP-005 setup on Gemma 3 (12B, 27B; 4B when available: size within a family) and Llama 3.1 8B
+# (another family), abstract twin. gpt-oss-20b@low comes from EXP-005 (runs/sim_e1_low_abstract), on the
+# same sample (per_cell 8, seed 0), so all results compare record by record.
+name: sim_e2_models_abstract
+dataset: triage_sim_abstract_v1
+sample: {per_cell: 8, seed: 0}
+simulators:
+  # providers are pinned: on OpenRouter the same model can differ between providers (quantisation),
+  # and DeepInfra returned empty answers for gemma-3-12b. gemma-3-4b (DeepInfra only, rate-limited
+  # on 2026-10-14) is added when available.
+  - {backend: openrouter, model: "google/gemma-3-12b-it", label: gemma-3-12b, tags: {family: gemma3, size_b: 12, reasoning: none},
+     params: {extra_body: {provider: {order: [NextBit], allow_fallbacks: false}}}}
+  - {backend: openrouter, model: "google/gemma-3-27b-it", label: gemma-3-27b, tags: {family: gemma3, size_b: 27, reasoning: none},
+     params: {extra_body: {provider: {order: [NextBit], allow_fallbacks: false}}}}
+  - {backend: openrouter, model: "meta-llama/llama-3.1-8b-instruct", label: llama-3.1-8b, tags: {family: llama3.1, size_b: 8, reasoning: none},
+     params: {extra_body: {provider: {order: [DeepInfra], allow_fallbacks: false}}}}
+run: {concurrency: 8, max_tokens: 4096, timeout: 60, max_requests: 2500}

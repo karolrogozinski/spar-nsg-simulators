@@ -131,13 +131,13 @@ def _proxy(old: Cond, domain: Domain, used: set, rng: random.Random) -> Cond | N
     """A numeric, non-sensitive feature outside the rule whose condition is met about as often, and that
     points the same way: if `old` makes YES more plausible, so does the proxy.
 
-    The way is read from the features' `yes_when` (high / low) when both have it; otherwise the proxy keeps
-    the end of the range the old condition keeps (">=" stays ">=", "<" stays "<").
+    The way is read from the features' `yes_when` when both have it; otherwise the proxy keeps the end
+    of the range the old condition keeps (">=" stays ">=", "<" stays "<").
     """
     old_feat = domain.feature(old.feature)
     target = old_feat.pass_rate(old.op, old.value)
     side = _selects(old)
-    supports_yes = side == old_feat.yes_when if side and old_feat.yes_when else None
+    supports_yes = old_feat.supports_yes(old.op, old.value)
     candidates = []
     for name, feat in domain.features.items():
         if name in used or feat.sensitive or feat.kind != "numeric":
@@ -145,7 +145,7 @@ def _proxy(old: Cond, domain: Domain, used: set, rng: random.Random) -> Cond | N
         for op in (">=", "<"):
             proxy_side = _selects(Cond(name, op, 0))
             if supports_yes is not None and feat.yes_when:
-                if (proxy_side == feat.yes_when) != supports_yes:
+                if feat.supports_yes(op, 0) != supports_yes:
                     continue
             elif side and proxy_side != side:
                 continue

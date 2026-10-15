@@ -59,6 +59,8 @@ class RuleSampler(Strict):
     rule_yes_rate: list[float] | None = None        # [min, max] share of inputs approved by the rule
     features: dict[str, AnyType] | None = None      # {include: [...], exclude: [...], max_per_feature: 1}
     ops: list[str] | None = None
+    direction: Literal["any", "intuitive", "counter"] | None = None  # intuitive: every condition points the
+                                                    # way the features' `yes_when` says (needs yes_when)
     tries: int = 200
 
 
@@ -177,6 +179,8 @@ class Simulator(Strict):
     max_tokens: int | None = None
     base_url: str | None = None
     params: dict = Field(default_factory=dict)       # extra backend-specific request fields
+    tags: dict = Field(default_factory=dict)         # labels for analysis, e.g. {family: gemma3, size_b: 12};
+                                                     # results get them as model.family, model.size_b
 
     @property
     def name(self) -> str:

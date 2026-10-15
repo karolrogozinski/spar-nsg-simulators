@@ -1,0 +1,8 @@
+# E1 pilot, step 1: gpt-oss-20b at low reasoning on the counter twin. The same cases are sampled in all
+# three twins (same seed, same record ids), so results compare record by record.
+name: sim_e1_low_counter
+dataset: triage_sim_counter_v1
+sample: {per_cell: 8, seed: 0}
+simulators:
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: low, label: gpt-oss-20b@low}
+run: {concurrency: 8, max_tokens: 4096, max_requests: 2500}

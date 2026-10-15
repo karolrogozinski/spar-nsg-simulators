@@ -1,0 +1,23 @@
+# Dataset for the simulator experiments (reasoning effort, model size, model family).
+# v2: same rules and cases as v1; arrival conditions now read "arrived on foot" like the profile
+# (v1 said "did not walk in", which simulators misread; EXP-006).
+# Random rules where every condition points the intuitive way (fever, low oxygen, arriving by
+# ambulance -> doctor; exceptions point the other way), so the mirror twin triage_sim_counter_v1
+# is the counter-intuitive version. Demographic features stay out of the rules: they are not
+# what the experiments are about, and omission would drop them first.
+name: triage_sim_v2
+description: 16 intuitive sampled triage rules (3-5 conditions); faithful and omission (1 or 2 conditions) at P0-P3; exact balance.
+domain: triage
+seed: 0
+rule_sampler:
+  n_rules: 16
+  n_conditions: [3, 5]
+  connectors: {and: 3, or: 1, unless: 1, at_least: {weight: 1, k: [2, 3]}}
+  max_depth: 2
+  direction: intuitive
+  features: {exclude: [age, sex, insurance]}
+  rule_yes_rate: [0.25, 0.75]
+explanations:
+  types: [faithful, omission]
+  omission: {n: [1, 2]}
+counterfactuals: {n_reference: 4, n_per_reference: 8, balance: exact}

@@ -10,6 +10,9 @@ Knobs (all in `rule_sampler`, any of them overriding the chosen `preset`):
   rule_yes_rate        [min, max] share of random inputs the whole rule approves
   features             {include, exclude, max_per_feature}
   ops                  allowed comparison operators
+  direction            any (default), intuitive or counter: with `intuitive`, every condition points the
+                       way the domain's `yes_when` says (a fever makes YES more likely, an exception makes
+                       it less likely); `counter` the opposite. Features without `yes_when` are not used.
 A rule is drawn top-down: split the conditions over the children of a randomly chosen connector,
 recurse until the depth limit, then fill leaves with conditions whose pass rate is in range.
 Rules whose approval rate falls outside `rule_yes_rate` (estimated on random inputs) are redrawn.
@@ -35,7 +38,7 @@ PRESETS = {
 STRUCTURE_NAMES = {"All": "and", "Any": "or", "AtLeast": "at_least", "Unless": "unless", "Not": "not", "Cond": "single"}
 DEFAULTS = dict(n_rules=6, n_conditions=[2, 4], connectors={"and": 1}, max_depth=2,
                 condition_pass_rate=[0.35, 0.8], rule_yes_rate=[0.15, 0.85], features={},
-                ops=[">=", "<=", "<", ">", "==", "!="])
+                ops=[">=", "<=", "<", ">", "==", "!="], direction="any")
 
 
 def resolve(cfg: RuleSampler) -> dict:
@@ -52,6 +55,9 @@ def resolve(cfg: RuleSampler) -> dict:
 def sample_rules(cfg: RuleSampler, domain: Domain, rng: random.Random) -> list[RuleItem]:
     p = resolve(cfg)
     features = _allowed_features(domain, p["features"])
+    want = {"any": None, "intuitive": True, "counter": False}[p["direction"]]
+    if want is not None:
+        features = [n for n in features if domain.feature(n).yes_when is not None]
     lo, hi = p["n_conditions"]
     if hi > len(features) * p["features"].get("max_per_feature", 1):
         raise ValueError(f"rule_sampler: up to {hi} conditions but only {len(features)} usable features")
@@ -61,7 +67,7 @@ def sample_rules(cfg: RuleSampler, domain: Domain, rng: random.Random) -> list[R
         for attempt in range(p["tries"]):
             n = rng.randint(lo, hi)
             pool = list(features)
-            rule = _node(n, 1, p, domain, pool, rng)
+            rule = _node(n, 1, p, domain, pool, rng, want)
             yes = sum(rule.evaluate(domain.feature_values(x)) for x in probe) / len(probe)
             if p["rule_yes_rate"][0] <= yes <= p["rule_yes_rate"][1] and rule.formal() not in seen:
                 seen.add(rule.formal())
@@ -84,21 +90,23 @@ def _weights(connectors: dict) -> dict[str, float]:
             if (v["weight"] if isinstance(v, dict) else v) > 0}
 
 
-def _node(n: int, depth: int, p: dict, domain: Domain, pool: list[str], rng: random.Random) -> Node:
+def _node(n: int, depth: int, p: dict, domain: Domain, pool: list[str], rng: random.Random,
+          want: bool | None = None) -> Node:
+    """A node with n conditions. `want`: whether its conditions should make YES more plausible (None: any)."""
+    flip = None if want is None else not want
     if n == 1:
-        cond = _condition(domain, pool, p, rng)
         if "not" in _weights(p["connectors"]) and rng.random() < _not_share(p):
-            return Not(cond)
-        return cond
+            return Not(_condition(domain, pool, p, rng, flip))  # negated: the inner condition points the other way
+        return _condition(domain, pool, p, rng, want)
     weights = {k: w for k, w in _weights(p["connectors"]).items() if k != "not"}
     if depth >= p["max_depth"] or not weights:
-        return All(tuple(_node(1, depth + 1, p, domain, pool, rng) for _ in range(n)))
+        return All(tuple(_node(1, depth + 1, p, domain, pool, rng, want) for _ in range(n)))
     kind = rng.choices(list(weights), list(weights.values()))[0]
     if kind == "unless":
-        base = _node(n - 1, depth + 1, p, domain, pool, rng)
-        return Unless(base, _node(1, depth + 1, p, domain, pool, rng))
+        base = _node(n - 1, depth + 1, p, domain, pool, rng, want)
+        return Unless(base, _node(1, depth + 1, p, domain, pool, rng, flip))  # the exception points to NO
     parts = _split(n, rng.randint(2, n), rng)
-    children = tuple(_node(m, depth + 1, p, domain, pool, rng) for m in parts)
+    children = tuple(_node(m, depth + 1, p, domain, pool, rng, want) for m in parts)
     if kind in ("and", "or"):
         cls = All if kind == "and" else Any
         # "a and (b and c)" is just "a and b and c": merge same-connector children
@@ -118,7 +126,7 @@ def _split(n: int, parts: int, rng: random.Random) -> list[int]:
     return [b - a for a, b in zip([0] + cuts, cuts + [n])]
 
 
-def _condition(domain: Domain, pool: list[str], p: dict, rng: random.Random) -> Cond:
+def _condition(domain: Domain, pool: list[str], p: dict, rng: random.Random, want: bool | None = None) -> Cond:
     lo, hi = p["condition_pass_rate"]
     rng.shuffle(pool)
     for i, name in enumerate(pool):
@@ -129,6 +137,8 @@ def _condition(domain: Domain, pool: list[str], p: dict, rng: random.Random) -> 
                 options += [(op, v) for v in feat.values[1:-1] if lo <= feat.pass_rate(op, v) <= hi]
             elif feat.kind != "numeric" and op in ("==", "!="):
                 options += [(op, v) for v in feat.values if lo <= feat.pass_rate(op, v) <= hi]
+        if want is not None:
+            options = [(op, v) for op, v in options if feat.supports_yes(op, v) == want]
         if options:
             pool.pop(i)  # one condition per feature
             op, v = rng.choice(options)
