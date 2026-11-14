@@ -19,7 +19,7 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from nsg_sim.backends.base import Request, make_backend
+from nsg_sim.backends.base import Request, Response, make_backend
 from nsg_sim.config import ExperimentConfig
 from nsg_sim.prompts.build import build_prompt
 from nsg_sim.prompts.parse import parse_answer
@@ -40,7 +40,9 @@ def select_records(records: list[dict], cfg: ExperimentConfig) -> list[dict]:
         rng = random.Random(smp.seed)
         cells = defaultdict(set)
         for r in rs:
-            cells[(r["rule_id"], r["explanation_type"], r.get("edit_size"), r["evidence_condition"])].add(r["item_id"])
+            # edit_target only enters the key when present, so older datasets sample exactly as before
+            target = (r["edit_target"],) if r.get("edit_target") else ()
+            cells[(r["rule_id"], r["explanation_type"], r.get("edit_size"), *target, r["evidence_condition"])].add(r["item_id"])
         chosen = set()
         for cell in sorted(cells, key=str):
             items = sorted(cells[cell])
@@ -96,8 +98,11 @@ def run_experiment(cfg: ExperimentConfig, dry_run: bool = False, root: Path | No
         path = out_dir / f"{safe_name(sim.name)}.jsonl"
         done = _done(path)
         todo = [j for j in jobs if (j[0]["record_id"], j[1]) not in done]
-        backend_calls = len({j[3] for j in todo}) if sim.backend != "baseline" else 0
-        log(f"  {sim.name} [{sim.backend}]: {len(todo)} rows to run ({len(jobs) - len(todo)} done), {backend_calls} API requests")
+        answered = _answered(path) if sim.backend != "baseline" else {}
+        backend_calls = len({j[3] for j in todo} - set(answered)) if sim.backend != "baseline" else 0
+        reused = f", {len({j[3] for j in todo} & set(answered))} prompts answered before" if answered else ""
+        log(f"  {sim.name} [{sim.backend}]: {len(todo)} rows to run ({len(jobs) - len(todo)} done), "
+            f"{backend_calls} API requests{reused}")
         if cfg.run.max_requests is not None and backend_calls > cfg.run.max_requests:
             raise RuntimeError(f"{sim.name}: {backend_calls} requests exceed run.max_requests={cfg.run.max_requests}")
         plans.append((sim, path, todo))
@@ -115,6 +120,21 @@ def run_experiment(cfg: ExperimentConfig, dry_run: bool = False, root: Path | No
     return out_dir
 
 
+RESPONSE_FIELDS = ("reasoning", "finish_reason", "latency_s", "prompt_tokens", "completion_tokens", "provider")
+
+
+def _answered(path: Path) -> dict:
+    """prompt_sha -> the row of an earlier successful answer to that exact prompt."""
+    if not path.exists():
+        return {}
+    out = {}
+    for line in path.read_text().splitlines():
+        row = json.loads(line)
+        if not row.get("error") and row.get("raw_response") is not None:
+            out.setdefault(row["prompt_sha"], row)
+    return out
+
+
 def _done(path: Path) -> set:
     if not path.exists():
         return set()
@@ -129,7 +149,13 @@ def _done(path: Path) -> set:
 async def _run_simulator(cfg: ExperimentConfig, sim, path: Path, todo: list[tuple], log) -> None:
     backend = make_backend(sim, cfg.run)
     semaphore = asyncio.Semaphore(cfg.run.concurrency)
-    cache: dict[str, asyncio.Task] = {}
+    cache: dict[str, asyncio.Future] = {}
+    reused: set[str] = set()
+    if backend.calls_api:  # identical prompts answered in an earlier run of this experiment are reused
+        for sha, row in _answered(path).items():
+            cache[sha] = asyncio.get_running_loop().create_future()
+            cache[sha].set_result(Response(**{k: row.get(k) for k in RESPONSE_FIELDS}, text=row["raw_response"]))
+            reused.add(sha)
     counts = defaultdict(int)
     every = max(1, len(todo) // 10) if backend.calls_api else len(todo)  # baselines: one summary line
 
@@ -152,6 +178,7 @@ async def _run_simulator(cfg: ExperimentConfig, sim, path: Path, todo: list[tupl
             "prediction": prediction, "raw_response": resp.text, "reasoning": resp.reasoning,
             "finish_reason": resp.finish_reason, "latency_s": resp.latency_s, "provider": resp.provider,
             "prompt_tokens": resp.prompt_tokens, "completion_tokens": resp.completion_tokens, "error": resp.error,
+            **({"reused": True} if key in reused else {}),   # copied from an earlier answer to the same prompt
         }) + "\n")
         fh.flush()
         counts["error" if resp.error else "unparsed" if prediction is None else "ok"] += 1

@@ -1,0 +1,12 @@
+# EXP-007: priors of llama-3.1-8b, run separately so it does not wait for gemma-3-27b (same cases as priors_pilot_gptoss20b: same seed, n_inputs and
+# wordings). Providers pinned as in sim_e2_models_*. The answer comes first, so a short token limit
+# cuts only the explanation some models add after it.
+name: priors_e2_llama
+datasets: [triage_sim_v1, triage_sim_abstract_v1]
+n_inputs: 300
+seed: 1000
+wordings: 3
+simulators:
+  - {backend: openrouter, model: "meta-llama/llama-3.1-8b-instruct", label: llama-3.1-8b, tags: {family: llama3.1, size_b: 8, reasoning: none},
+     params: {extra_body: {provider: {order: [DeepInfra], allow_fallbacks: false}}}}
+run: {concurrency: 8, max_tokens: 1024, timeout: 90, max_requests: 2500}

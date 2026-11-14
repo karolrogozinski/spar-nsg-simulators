@@ -16,6 +16,7 @@ explanation:
   unless: ", unless the patient "
   features_only: "The decision was driven mainly by the patient's {features}."
   distractor: "The patient's {features} were also checked but did not change the decision."
+  partial_note: "A simplified summary, which may not list every criterion: "   # used by the `partial` transform
 
 # How a patient is described to the simulator. {feature} inserts a value (through `display` when
 # given); {feature|s} adds a plural "s" unless the value is 1.

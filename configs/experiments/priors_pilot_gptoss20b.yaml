@@ -1,0 +1,11 @@
+# EXP-007 pilot: gpt-oss-20b's priors about the triage domain and its abstract twin, with no rule,
+# explanation or reference case. The counter twin shares the triage view.
+name: priors_pilot_gptoss20b
+datasets: [triage_sim_v1, triage_sim_abstract_v1]
+n_inputs: 300
+seed: 1000
+wordings: 3
+simulators:
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: low, label: gpt-oss-20b@low,
+     tags: {family: gpt-oss, size_b: 20, reasoning: low}}
+run: {concurrency: 8, max_tokens: 2048, timeout: 60, max_requests: 2500}

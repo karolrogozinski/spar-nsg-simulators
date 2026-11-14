@@ -1,0 +1,14 @@
+# EXP-011: prior strength of each domain (x axis across domains). Rule-free cases in every domain's base
+# and abstract view (a mirror twin shares its base's view); `nsg priors-table --features` gives the
+# per-feature rho of P(YES) toward yes_when and each domain's mean |rho|.
+name: priors_e11_domains
+datasets: [triage_sim_v3, triage_sim_abstract_v3, loan_sim_v1, loan_sim_abstract_v1,
+           irrigation_sim_v1, irrigation_sim_abstract_v1, beekeeping_sim_v1, beekeeping_sim_abstract_v1,
+           stars_sim_v1, stars_sim_abstract_v1, library_sim_v1, library_sim_abstract_v1,
+           shells_sim_v1, shells_sim_abstract_v1]
+n_inputs: 300
+seed: 1000
+wordings: 1
+simulators:
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: low, label: gpt-oss-20b@low, tags: {family: gpt-oss, size_b: 20, reasoning: low}}
+run: {concurrency: 32, max_tokens: 4096, timeout: 300, max_requests: 5000}

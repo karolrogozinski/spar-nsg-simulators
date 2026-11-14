@@ -1,0 +1,178 @@
+# Stars: does an astronomer classify a star as "Kessel type" in the (invented) Arden catalogue?
+# Real words, invented class: weak priors at most. `yes_when` is ARBITRARY here (there is no sensible
+# direction for an invented class); the "intuitive" and mirror twins are two equally arbitrary rules.
+# Features avoid physical couplings (no temperature next to colour, no mass next to brightness) and
+# hues avoid blue/red, which suggest temperature. EXP-011.
+name: stars
+description: Classification of stars as Kessel type in the Arden catalogue (brightness, pulsation, planets, ...).
+
+task:
+  actor: astronomer compiling the Arden catalogue
+  actor_short: astronomer
+  subject: star
+  decision: The astronomer decides whether the star is classified as Kessel type (YES) or not (NO).
+
+explanation:
+  intro: "The star is classified as Kessel type if the star "
+  unless: ", unless the star "
+  features_only: "The decision was driven mainly by the star's {features}."
+  distractor: "The star's {features} were also checked but did not change the decision."
+  partial_note: "A simplified summary, which may not list every criterion: "
+
+profile: >-
+  The star was recorded by the {observatory} observatory. It has a {hue} hue, a catalogue brightness
+  of {brightness}, a pulsation period of {pulsation} day{pulsation|s} and a rotation period of
+  {rotation} day{rotation|s}. It lies {distance} light years away and has {planets} known
+  planet{planets|s}. The star {in_cluster} and {dust_ring}.
+
+features:
+  brightness:
+    type: numeric
+    range: [1, 100]
+    label: catalogue brightness
+    yes_when: high
+    aliases: [brightness, bright, faint]
+    phrases:
+      ">=":
+        exact: "has a catalogue brightness of at least {v}"
+        approximate: "has a catalogue brightness of around {approx} or more"
+        qualitative:
+          - {max: 30, text: "is not faint"}
+          - {max: 65, text: "is at least moderately bright"}
+          - {text: "is very bright"}
+      "<":
+        exact: "has a catalogue brightness below {v}"
+        approximate: "has a catalogue brightness below around {approx}"
+        qualitative:
+          - {max: 30, text: "is faint"}
+          - {max: 65, text: "is not bright"}
+          - {text: "is not very bright"}
+
+  pulsation:
+    type: numeric
+    range: [1, 60]
+    label: pulsation period
+    yes_when: low
+    aliases: [pulsation, pulsates, pulsating]
+    phrases:
+      ">=":
+        exact: "has a pulsation period of at least {v} days"
+        approximate: "has a pulsation period of around {approx} days or more"
+        qualitative:
+          - {max: 15, text: "does not pulsate quickly"}
+          - {max: 35, text: "pulsates at least moderately slowly"}
+          - {text: "pulsates very slowly"}
+      "<":
+        exact: "has a pulsation period below {v} days"
+        approximate: "has a pulsation period below around {approx} days"
+        qualitative:
+          - {max: 15, text: "pulsates quickly"}
+          - {max: 35, text: "does not pulsate slowly"}
+          - {text: "does not pulsate very slowly"}
+
+  rotation:
+    type: numeric
+    range: [1, 90]
+    label: rotation period
+    yes_when: high
+    aliases: [rotation, rotates, rotating]
+    phrases:
+      ">=":
+        exact: "has a rotation period of at least {v} days"
+        approximate: "has a rotation period of around {approx} days or more"
+        qualitative:
+          - {max: 25, text: "does not rotate quickly"}
+          - {max: 55, text: "rotates at least moderately slowly"}
+          - {text: "rotates very slowly"}
+      "<":
+        exact: "has a rotation period below {v} days"
+        approximate: "has a rotation period below around {approx} days"
+        qualitative:
+          - {max: 25, text: "rotates quickly"}
+          - {max: 55, text: "does not rotate slowly"}
+          - {text: "does not rotate very slowly"}
+
+  distance:
+    type: numeric
+    range: [10, 2000]
+    step: 10
+    label: distance
+    yes_when: low
+    aliases: [distance, light years, far, near, nearby]
+    phrases:
+      ">=":
+        exact: "lies at least {v} light years away"
+        approximate: "lies around {approx} light years away or more"
+        qualitative:
+          - {max: 500, text: "is not nearby"}
+          - {max: 1200, text: "is at least moderately distant"}
+          - {text: "is very distant"}
+      "<":
+        exact: "lies less than {v} light years away"
+        approximate: "lies less than around {approx} light years away"
+        qualitative:
+          - {max: 500, text: "is nearby"}
+          - {max: 1200, text: "is not distant"}
+          - {text: "is not very distant"}
+
+  planets:
+    type: numeric
+    range: [0, 8]
+    label: number of known planets
+    yes_when: high
+    aliases: [planet, planets]
+    phrases:
+      ">=":
+        exact: "has at least {v} known planets"
+        approximate: "has around {approx} or more known planets"
+        qualitative:
+          - {max: 2, text: "has some known planets"}
+          - {max: 5, text: "has at least several known planets"}
+          - {text: "has many known planets"}
+      "<":
+        exact: "has fewer than {v} known planets"
+        approximate: "has fewer than around {approx} known planets"
+        qualitative:
+          - {max: 2, text: "has at most one known planet"}
+          - {max: 5, text: "has only a few known planets"}
+          - {text: "does not have many known planets"}
+    overrides:
+      - {op: ">=", value: 1, text: "has at least one known planet"}
+      - {op: "<", value: 1, text: "has no known planets"}
+
+  hue:
+    type: categorical
+    values: [golden, silver, rusty]
+    label: hue
+    yes_when: [golden, silver]   # arbitrary; all values but one (the sampler only draws != for 3 values)
+    aliases: [hue, golden, silver, rusty]
+    phrases:
+      values: {golden: "has a golden hue", silver: "has a silver hue", rusty: "has a rusty hue"}
+      not_values: {golden: "does not have a golden hue", silver: "does not have a silver hue", rusty: "does not have a rusty hue"}
+    mirror: {rusty: golden, golden: rusty}
+
+  in_cluster:
+    type: bool
+    label: cluster membership
+    yes_when: true
+    aliases: [cluster]
+    phrases: {"true": "lies in a cluster", "false": "does not lie in a cluster"}
+    display: {true: lies in a cluster, false: does not lie in a cluster}
+
+  dust_ring:
+    type: bool
+    label: dust ring
+    yes_when: false
+    aliases: [dust]
+    phrases: {"true": "has a dust ring", "false": "has no dust ring"}
+    display: {true: has a dust ring, false: has no dust ring}
+
+  observatory:
+    type: categorical
+    values: [Hollin, Marrow, Vey]
+    label: observatory
+    aliases: [observatory, Hollin, Marrow, Vey]
+    sensitive: true   # not part of the rules, like demographics in triage
+    phrases:
+      values: {Hollin: "was recorded by the Hollin observatory", Marrow: "was recorded by the Marrow observatory", Vey: "was recorded by the Vey observatory"}
+      not_values: {Hollin: "was not recorded by the Hollin observatory", Marrow: "was not recorded by the Marrow observatory", Vey: "was not recorded by the Vey observatory"}

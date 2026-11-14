@@ -73,6 +73,24 @@ def test_api_backend_with_errors_then_resume(built, tmp_path, fake_server):
     assert pairs and all(p["valid"] for p in pairs)
 
 
+def test_identical_prompts_are_reused_when_a_run_grows(built, tmp_path, fake_server):
+    sim = {"backend": "ollama", "model": "fake", "base_url": fake_server}
+    run = {"retries": 5, "concurrency": 4}
+    out = run_experiment(experiment(simulators=[sim], filter={"evidence_conditions": ["none"], "levels": ["P0"]}, run=run),
+                         root=tmp_path, log=lambda *_: None)
+    logs = []
+    grown = experiment(simulators=[sim], filter={"evidence_conditions": ["none"], "levels": ["P0", "P1"]}, run=run)
+    run_experiment(grown, root=tmp_path, dry_run=True, log=logs.append)
+    assert any("prompts answered before" in line for line in logs)
+    run_experiment(grown, root=tmp_path, log=lambda *_: None)
+    rows = [json.loads(line) for line in next(out.glob("*.jsonl")).read_text().splitlines()]
+    reused = [r for r in rows if r.get("reused")]
+    # P1 records share their no-explanation prompts with P0, so those answers are copied, not asked again
+    assert reused and all(not r["with_explanation"] for r in reused)
+    first = {r["prompt_sha"]: r["raw_response"] for r in rows if not r.get("reused") and not r["error"]}
+    assert all(r["raw_response"] == first[r["prompt_sha"]] for r in reused)
+
+
 def test_run_refuses_changed_dataset(built, tmp_path):
     out = run_experiment(experiment(), root=tmp_path, log=lambda *_: None)
     meta = json.loads((out / "run.json").read_text())

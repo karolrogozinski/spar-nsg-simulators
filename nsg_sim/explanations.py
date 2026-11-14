@@ -1,7 +1,8 @@
 """Explanation variants of a rule f: the rule g each explanation describes.
 
   faithful         g = f
-  omission         n conditions of f dropped (sensitive features first)
+  omission         n conditions of f dropped (sensitive features first), or one condition chosen by
+                   its relation to the simulators' priors (targets aligned / opposed / neutral)
   substitution     n conditions replaced by plausible proxies pointing the same way
   wrong_threshold  one numeric threshold moved by a share of the feature's range
   distractor       g = f, the text also names features that played no role
@@ -18,7 +19,7 @@ from dataclasses import dataclass
 
 from nsg_sim.config import DEFAULT_SHIFT
 from nsg_sim.domain.base import Domain
-from nsg_sim.rules.ast import Cond, Node
+from nsg_sim.rules.ast import Cond, Node, Not, Unless
 from nsg_sim.rules.sources import RuleItem
 
 
@@ -32,10 +33,13 @@ class Variant:
     size: float | int | None    # conditions changed (omission, substitution) or share of range moved (wrong_threshold)
     g: Node
     extras: dict
+    target: str | None = None   # omission target (aligned / opposed / neutral) when the recipe asks for them
 
 
 def explanation_label(rec: dict) -> str:
     """The explanation type, with the edit size when the dataset has several ("omission n=2")."""
+    if rec.get("edit_target"):
+        return f"{rec['explanation_type']} {rec['edit_target']}"
     size = rec.get("edit_size")
     if size is None:
         return rec["explanation_type"]
@@ -57,6 +61,13 @@ def build_variants(item: RuleItem, domain: Domain, explanations, rng: random.Ran
     out = []
     for etype in explanations.types:
         seed = rng.random()  # one seed per type: every size edits the same conditions in the same order
+        if explanations.targets(etype):
+            for target in explanations.targets(etype):
+                cond = _pick_target(f, domain, target, explanations.omission.strong, random.Random(f"{seed}|{target}"))
+                g = f.replace(cond, None) if cond is not None else None
+                if g is not None:
+                    out.append(Variant(f"{etype}@{target}", etype, None, g, {"edited": [cond]}, target))
+            continue
         for size in explanations.sizes(etype) or [None]:
             g, extras = _edit(f, item, domain, etype, size, explanations, random.Random(seed))
             if g is None:
@@ -106,6 +117,34 @@ def _edit_order(f: Node, domain: Domain, pinned: list[Cond], rng: random.Random)
     rng.shuffle(rest)
     rest.sort(key=lambda c: not domain.feature(c.feature).sensitive)
     return [c for c in pinned if c in conds] + rest
+
+
+def _pick_target(f: Node, domain: Domain, target: str, strong: list[str], rng: random.Random) -> Cond | None:
+    """A condition of f to omit by its relation to the simulators' priors (None if the rule has none).
+
+    aligned: a `strong` feature whose condition points the way its `yes_when` says (meeting it makes YES
+    more plausible); opposed: a `strong` feature pointing the other way; neutral: a feature not in `strong`.
+    Needs a rule without negations or exceptions, where meeting any condition pushes towards YES.
+    """
+    if any(isinstance(n, (Not, Unless)) for n in _nodes(f)):
+        raise ValueError(f"omission targets need rules without negations or exceptions: {f.formal()}")
+
+    def kind(c: Cond) -> str | None:
+        if c.feature not in strong:
+            return "neutral"
+        return {True: "aligned", False: "opposed"}.get(domain.feature(c.feature).supports_yes(c.op, c.value))
+
+    matches = [c for c in f.conditions() if kind(c) == target]
+    return rng.choice(matches) if matches else None
+
+
+def _nodes(node: Node):
+    yield node
+    for child in getattr(node, "items", ()) or ():
+        yield from _nodes(child)
+    for attr in ("item", "base", "exception"):
+        if getattr(node, attr, None) is not None:
+            yield from _nodes(getattr(node, attr))
 
 
 def _selects(c: Cond) -> str | None:

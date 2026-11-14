@@ -21,7 +21,7 @@ from nsg_sim.render.checks import check_text
 from nsg_sim.rules.ast import from_spec, to_spec
 from nsg_sim.rules.sources import rules_from_config
 from nsg_sim.sampling import (balanced_possible, candidate_buckets, evaluate, make_evidence,
-                              sample_reference, select_counterfactuals)
+                              sample_reference, select_counterfactuals, shared_counterfactuals)
 
 def label(value: bool) -> str:
     return "YES" if value else "NO"
@@ -34,7 +34,11 @@ def build_records(cfg: DatasetConfig, llm=None) -> tuple[list[dict], dict, Domai
     level_ids = [lvl.id for lvl in cfg.levels]
     cf, ev_cfg = cfg.counterfactuals, cfg.evidence
     records, skipped = [], []
-    wanted = [variant_key(t, s) for t in cfg.explanations.types for s in cfg.explanations.sizes(t) or [None]]
+    wanted = [f"{t}@{target}" for t in cfg.explanations.types for target in cfg.explanations.targets(t) or []]
+    wanted += [variant_key(t, s) for t in cfg.explanations.types if not cfg.explanations.targets(t)
+               for s in cfg.explanations.sizes(t) or [None]]
+    if cf.shared and ev_cfg:
+        raise ValueError("shared counterfactuals do not support evidence")
     for item in items:
         f = item.rule
         variants = build_variants(item, domain, cfg.explanations, random.Random(f"{cfg.seed}|variants|{item.id}"))
@@ -59,11 +63,18 @@ def build_records(cfg: DatasetConfig, llm=None) -> tuple[list[dict], dict, Domai
         for ref in range(cf.n_reference):
             target = ref % 2 == 0  # alternate YES, NO references
             x = _reference(domain, f, gs, target, cfg, item.id, ref, focus)
+            if cf.shared:  # one set for every variant, balanced on the true decision
+                rng = random.Random(f"{cfg.seed}|cx|{item.id}|shared|{ref}")
+                shared_cxs = shared_counterfactuals(domain, x, f, gs, rng, focus, cf.pool_size, cf.n_per_reference,
+                                                    cf.balance)
             for v in variants:
                 etype, g, extras = v.etype, v.g, v.extras
                 rng = random.Random(f"{cfg.seed}|cx|{item.id}|{v.key}|{ref}")
-                buckets = candidate_buckets(domain, x, f, None if g == f else g, rng, focus, cf.pool_size)
-                cxs = select_counterfactuals(buckets, cf.n_per_reference, cf.balance)
+                if cf.shared:
+                    buckets, cxs = {}, shared_cxs
+                else:
+                    buckets = candidate_buckets(domain, x, f, None if g == f else g, rng, focus, cf.pool_size)
+                    cxs = select_counterfactuals(buckets, cf.n_per_reference, cf.balance)
                 evidence_sets, k_levels = {}, []
                 if ev_cfg:
                     k_levels = ev_cfg.contradicting if etype in ev_cfg.types else ev_cfg.other_types_contradicting
@@ -116,6 +127,8 @@ def build_records(cfg: DatasetConfig, llm=None) -> tuple[list[dict], dict, Domai
                             }
                             if v.size is not None:  # only when the recipe asks for edit sizes
                                 record["edit_size"] = v.size
+                            if v.target is not None:  # only when the recipe asks for omission targets
+                                record["edit_target"] = v.target
                             records.append(record)
     manifest = {"description": cfg.description, "config": cfg.model_dump(mode="json"),
                 "domain": _domain_info(domain), "levels": [lvl.model_dump(mode="json") for lvl in cfg.levels],

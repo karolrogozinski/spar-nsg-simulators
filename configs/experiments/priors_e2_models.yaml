@@ -1,0 +1,14 @@
+# EXP-007: priors of the Gemma E2 simulators (llama-3.1-8b: priors_e2_llama.yaml) (same cases as priors_pilot_gptoss20b: same seed, n_inputs and
+# wordings). Providers pinned as in sim_e2_models_*. Gemma reasons before giving the probability, so the
+# token limit must leave room for it (256 truncated 16-31% of its answers; those were re-asked with 1024).
+name: priors_e2_models
+datasets: [triage_sim_v1, triage_sim_abstract_v1]
+n_inputs: 300
+seed: 1000
+wordings: 3
+simulators:
+  - {backend: openrouter, model: "google/gemma-3-12b-it", label: gemma-3-12b, tags: {family: gemma3, size_b: 12, reasoning: none},
+     params: {extra_body: {provider: {order: [NextBit], allow_fallbacks: false}}}}
+  - {backend: openrouter, model: "google/gemma-3-27b-it", label: gemma-3-27b, tags: {family: gemma3, size_b: 27, reasoning: none},
+     params: {extra_body: {provider: {order: [NextBit], allow_fallbacks: false}}}}
+run: {concurrency: 8, max_tokens: 1024, timeout: 90, max_requests: 2500}

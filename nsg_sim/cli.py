@@ -8,6 +8,7 @@
   nsg analyze RUN_DIR              tables of accuracy / NSG
   nsg plot RUN_DIR                 figures
   nsg report RUN_DIR               rewrite summary.csv and the figure inside a run folder
+  nsg priors CONFIG                ask simulators about a domain with no rule (simulator priors)
   nsg push NAME / nsg pull NAME    share datasets through the Hugging Face hub
 """
 
@@ -18,12 +19,14 @@ import json
 import sys
 from pathlib import Path
 
-from nsg_sim import cli_analyze, cli_hub, cli_run
-from nsg_sim.config import DatasetConfig, ExperimentConfig, load_yaml
+from nsg_sim import cli_analyze, cli_hub, cli_priors, cli_run
+from nsg_sim.config import DatasetConfig, ExperimentConfig, PriorsConfig, load_yaml
 
 
 def _config_kind(raw: dict) -> str:
-    return "experiment" if "simulators" in raw else "dataset"
+    if "simulators" in raw:
+        return "priors" if "datasets" in raw else "experiment"
+    return "dataset"
 
 
 def cmd_validate(args) -> int:
@@ -32,7 +35,7 @@ def cmd_validate(args) -> int:
         raw = load_yaml(path)
         kind = _config_kind(raw)
         try:
-            (ExperimentConfig if kind == "experiment" else DatasetConfig).model_validate(raw)
+            {"experiment": ExperimentConfig, "priors": PriorsConfig, "dataset": DatasetConfig}[kind].model_validate(raw)
             if kind == "dataset" and raw.get("domain"):
                 from nsg_sim.domain.tabular import load_domain
                 from nsg_sim.rules.sources import rules_from_config
@@ -135,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("list", help="list built datasets")
     p.set_defaults(func=cmd_list)
 
-    for module in (cli_run, cli_analyze, cli_hub):
+    for module in (cli_run, cli_analyze, cli_priors, cli_hub):
         module.register(sub)
 
     args = parser.parse_args(argv)

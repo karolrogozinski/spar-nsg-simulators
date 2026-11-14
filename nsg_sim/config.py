@@ -64,15 +64,33 @@ class RuleSampler(Strict):
     tries: int = 200
 
 
+OMISSION_TARGETS = ("aligned", "opposed", "neutral")
+
+
 class EditCount(Strict):
-    """How many conditions an omission / substitution changes; one explanation variant per value."""
+    """How many conditions an omission / substitution changes; one explanation variant per value.
+
+    Omission can instead choose *which* condition to drop, one variant per target: `aligned` (a
+    condition on a `strong` feature pointing the way its `yes_when` says), `opposed` (a `strong`
+    feature pointing the other way) or `neutral` (a feature not in `strong`). `strong` lists the
+    features the simulators have a clear prior about (e.g. measured with `nsg priors`).
+    """
 
     n: list[int] = Field(default_factory=lambda: [1])
+    target: list[Literal["aligned", "opposed", "neutral"]] | None = None
+    strong: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _check(self):
         if not self.n or any(k < 1 for k in self.n) or len(set(self.n)) != len(self.n):
             raise ValueError(f"n must be distinct numbers >= 1, got {self.n}")
+        if self.target is not None:
+            if self.n != [1]:
+                raise ValueError("omission targets drop one condition each: leave n at [1]")
+            if not self.target or len(set(self.target)) != len(self.target):
+                raise ValueError(f"target must list distinct targets, got {self.target}")
+            if any(t in ("aligned", "opposed") for t in self.target) and not self.strong:
+                raise ValueError("omission targets aligned / opposed need `strong` features")
         return self
 
 
@@ -106,6 +124,10 @@ class Explanations(Strict):
                 raise ValueError(f"unknown explanation type {t!r}; choose from {EXPLANATION_TYPES}")
         return self
 
+    def targets(self, etype: str) -> list | None:
+        """Omission targets to build (aligned / opposed / neutral), or None for the usual omission."""
+        return self.omission.target if etype == "omission" else None
+
     def sizes(self, etype: str) -> list | None:
         """Edit sizes to build for a type, or None when the type uses the single default edit."""
         if etype in ("omission", "substitution"):
@@ -121,6 +143,9 @@ class Counterfactuals(Strict):
     n_reference: int = 2                            # reference inputs per rule (alternating YES / NO)
     n_per_reference: int = 8
     balance: Literal["loose", "exact"] = "loose"
+    shared: bool = False                            # the same counterfactuals for every explanation of a rule
+                                                    # (balanced on the true decision only), so variants can be
+                                                    # compared on identical cases and no-explanation prompts
     # loose: round-robin over (discriminating, label) buckets that exist
     # exact: every reference gets n/2 YES and n/2 NO counterfactuals (references are resampled until possible)
     pool_size: int = 3000
@@ -148,7 +173,7 @@ class DatasetConfig(Strict):
     evidence: Evidence | None = None
     # derived datasets: paired transform of another built dataset
     derive_from: str | None = None
-    transform: Literal["mirror", "abstract"] | None = None
+    transform: Literal["mirror", "abstract", "partial"] | None = None
 
     @model_validator(mode="after")
     def _check(self):
@@ -226,6 +251,20 @@ class ExperimentConfig(Strict):
     sample: Sample = Field(default_factory=Sample)
     prompt: PromptConfig = Field(default_factory=PromptConfig)
     with_baseline: bool = True                       # also run prompts without the explanation (needed for NSG)
+    simulators: list[Simulator]
+    run: RunSettings = Field(default_factory=RunSettings)
+
+
+class PriorsConfig(Strict):
+    """Elicit simulators' priors about the domains of some datasets (see nsg_sim/priors.py)."""
+
+    name: str
+    description: str = ""
+    datasets: list[str]                              # one domain view each (a mirror twin shares its base's view)
+    n_inputs: int = 300                              # cases per view, none of them used in the datasets
+    seed: int = 1000
+    wordings: int = Field(3, ge=1, le=3)             # question wordings per case / feature
+    directions: bool = True                          # also ask per-feature direction questions
     simulators: list[Simulator]
     run: RunSettings = Field(default_factory=RunSettings)
 

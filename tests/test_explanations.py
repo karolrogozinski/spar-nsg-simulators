@@ -92,3 +92,53 @@ def test_sized_dataset_records_and_sampling(data_dir):
 def test_default_recipes_have_no_edit_size(built):
     records, _ = built["triage_full_v1"]
     assert all("edit_size" not in r for r in records)
+
+
+# --- omission targets (EXP-009) ----------------------------------------------------
+
+TARGETS = {"types": ["faithful", "omission"],
+           "omission": {"target": ["aligned", "opposed", "neutral"], "strong": ["temperature", "oxygen"]}}
+MIXED = {"all": [["oxygen", ">=", 90], ["chronic", "==", True], ["temperature", ">=", 38]]}
+
+
+def test_omission_targets_drop_the_condition_of_their_kind():
+    vs = variants(MIXED, TARGETS)
+    dropped = {k: {repr(c) for c in from_spec(MIXED).conditions()} - {repr(c) for c in v.g.conditions()}
+               for k, v in vs.items() if k != "faithful"}
+    assert dropped == {"omission@aligned": {repr(from_spec(["temperature", ">=", 38]))},   # fever -> doctor: expected
+                       "omission@opposed": {repr(from_spec(["oxygen", ">=", 90]))},        # high saturation -> doctor
+                       "omission@neutral": {repr(from_spec(["chronic", "==", True]))}}
+    assert all(v.target == k.split("@")[1] for k, v in vs.items() if k != "faithful")
+
+
+def test_omission_target_without_a_match_is_skipped():
+    vs = variants({"all": [["temperature", ">=", 38], ["chronic", "==", True]]}, TARGETS)
+    assert set(vs) == {"faithful", "omission@aligned", "omission@neutral"}
+
+
+def test_omission_targets_need_strong_features_and_single_drops():
+    with pytest.raises(ValueError):
+        Explanations.model_validate({"types": ["omission"], "omission": {"target": ["aligned"]}})
+    with pytest.raises(ValueError):
+        Explanations.model_validate({"types": ["omission"], "omission": {"target": ["neutral"], "n": [1, 2]}})
+
+
+def test_shared_counterfactuals_and_partial_twin(data_dir):
+    cfg = DatasetConfig.model_validate({
+        "name": "targets_test", "domain": "triage", "rules": [{"id": "T1", "rule": MIXED}],
+        "explanations": {**TARGETS, "levels": {"faithful": ["P0"], "omission": ["P0"]}},
+        "counterfactuals": {"n_reference": 2, "n_per_reference": 8, "balance": "exact", "shared": True}})
+    records, _ = build_dataset(cfg)
+    by_variant = {}
+    for r in records:
+        by_variant.setdefault(r["cluster_id"].split("|")[1], []).append((r["input_x"], r["input_cx"]))
+    cases = list(by_variant.values())
+    assert len(by_variant) == 4 and all(c == cases[0] for c in cases)   # identical cases for every explanation
+    assert {r.get("edit_target") for r in records} == {None, "aligned", "opposed", "neutral"}
+    assert all(r["discriminating"] for r in records if r["explanation_type"] == "omission"
+               and r["described_formal"] != r["rule_formal"] and r["label_cx"] != r["explanation_label_cx"])
+    # partial twin: same records, the explanation only gains the domain's note
+    twin, _ = build_dataset(DatasetConfig(name="targets_test_partial", derive_from="targets_test", transform="partial"))
+    note = TRIAGE.explanation["partial_note"]
+    assert [r["input_cx"] for r in twin] == [r["input_cx"] for r in records]
+    assert all(t["explanation_text"] == note + r["explanation_text"] for t, r in zip(twin, records))

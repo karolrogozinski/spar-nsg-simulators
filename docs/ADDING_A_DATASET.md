@@ -115,6 +115,7 @@ Every feature can also take these keys:
 | `sensitive` | marks features like age or sex; `omission` drops these first | `sensitive: true` |
 | `yes_when` | what makes a YES more plausible: `high` / `low` (numeric), `true` / `false` (bool), a list of values (categorical). Used by `substitution` (the proxy points the same way) and by the sampler's `direction` | `yes_when: low` (oxygen), `yes_when: [ambulance, referral]` |
 | `mirror` | value swaps for categories in the `mirror` (counter-intuitive) transform | `mirror: {walk_in: ambulance, ambulance: walk_in}` |
+| `approx_unit` | numeric: rounding unit of P1. A P1 template with `{approx}` ("of around {approx}°C or more") states the threshold rounded to a nearby round number, so P1 is truly less specific than P0 (`{v}` states it exactly); the unit defaults to 10% of the range on a 1-2-5 scale, at least two grid steps (numbers of 10 or more round to fives rather than twos) | `approx_unit: 2` |
 
 ### 1.4 `phrases`: how conditions are written at each level
 
@@ -820,6 +821,32 @@ A complete working example (short sentences whose features are part-of-speech co
 by the tests: `tests/sentence_domain.py` and `tests/fixtures/sentence_example.yaml`. The same pattern gives
 **computed features** (a weighted score, a ratio of two features), since rules compare one feature
 with a constant. The `mirror` and `abstract` transforms work on table domains only.
+
+### Simulator priors
+
+What a simulator predicts before it sees any rule or explanation. A priors config lists built
+datasets and simulators; the simulator is asked for P(YES) on rule-free cases from each domain:
+
+```yaml
+# configs/experiments/priors_e11_domains.yaml (shortened)
+name: priors_e11_domains
+datasets: [loan_sim_v1, loan_sim_abstract_v1]
+n_inputs: 300            # cases per dataset
+seed: 1000
+wordings: 1              # paraphrases of the question
+simulators:
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: low, label: gpt-oss-20b@low}
+run: {concurrency: 32, max_tokens: 4096, timeout: 300, max_requests: 5000}
+```
+
+```bash
+nsg priors configs/experiments/priors_e11_domains.yaml --dry-run    # what would be sent
+nsg priors configs/experiments/priors_e11_domains.yaml              # -> runs/priors_e11_domains/
+nsg priors-table runs/priors_e11_domains --datasets loan_sim_v1 loan_sim_counter_v1
+                                                   # agreement of each rule with the priors
+nsg priors-table runs/priors_e11_domains --datasets loan_sim_v1 --features --csv features.csv
+                                                   # per-feature rho and each domain's prior strength
+```
 
 ### Other additions (Python)
 

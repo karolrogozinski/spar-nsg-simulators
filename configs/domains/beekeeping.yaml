@@ -1,0 +1,191 @@
+# Beekeeping: does a beekeeper split the hive today (to prevent swarming)? Real but niche expert
+# knowledge: a model knows roughly that a crowded, strong colony with queen cells is split, but the
+# priors are weaker and less certain than in triage or loans. EXP-011.
+# Qualitative words for intermediate thresholds state a bound ("at least several frames"), not a band.
+name: beekeeping
+description: Hive-splitting decisions on a short inspection record (brood, queen, stores, health, weather).
+
+task:
+  actor: beekeeper
+  actor_short: beekeeper
+  subject: hive
+  decision: The beekeeper decides whether the hive is split today (YES) or left as it is (NO).
+
+explanation:
+  intro: "The hive is split if the hive "
+  unless: ", unless the hive "
+  features_only: "The decision was driven mainly by the hive's {features}."
+  distractor: "The hive's {features} were also checked but did not change the decision."
+  partial_note: "A simplified summary, which may not list every criterion: "
+
+profile: >-
+  The hive stands in the {apiary} apiary. It has {brood_frames} frame{brood_frames|s} of brood,
+  {honey_frames} frame{honey_frames|s} of honey and {queen_cells} queen cell{queen_cells|s}; the queen
+  is {queen_age} year{queen_age|s} old. The mite count is {mites} per 100 bees, the outside
+  temperature is {temperature}°C and the nectar flow is {nectar_flow}. The hive {drones}.
+
+features:
+  brood_frames:
+    type: numeric
+    range: [0, 10]
+    label: brood frames
+    yes_when: high
+    aliases: [brood]
+    phrases:
+      ">=":
+        exact: "has at least {v} frames of brood"
+        approximate: "has around {approx} or more frames of brood"
+        qualitative:
+          - {max: 3, text: "has more than a little brood"}
+          - {max: 6, text: "has at least a fair amount of brood"}
+          - {text: "has a lot of brood"}
+      "<":
+        exact: "has fewer than {v} frames of brood"
+        approximate: "has fewer than around {approx} frames of brood"
+        qualitative:
+          - {max: 3, text: "has little brood"}
+          - {max: 6, text: "does not have much brood"}
+          - {text: "does not have a lot of brood"}
+
+  honey_frames:
+    type: numeric
+    range: [0, 10]
+    label: honey frames
+    yes_when: high
+    aliases: [honey, stores]
+    phrases:
+      ">=":
+        exact: "has at least {v} frames of honey"
+        approximate: "has around {approx} or more frames of honey"
+        qualitative:
+          - {max: 3, text: "has more than a little honey"}
+          - {max: 6, text: "has at least a fair amount of honey"}
+          - {text: "has a lot of honey"}
+      "<":
+        exact: "has fewer than {v} frames of honey"
+        approximate: "has fewer than around {approx} frames of honey"
+        qualitative:
+          - {max: 3, text: "has little honey"}
+          - {max: 6, text: "does not have much honey"}
+          - {text: "does not have a lot of honey"}
+
+  queen_cells:
+    type: numeric
+    range: [0, 8]
+    label: queen cells
+    yes_when: high
+    aliases: [queen cell]
+    phrases:
+      ">=":
+        exact: "has at least {v} queen cells"
+        approximate: "has around {approx} or more queen cells"
+        qualitative:
+          - {max: 2, text: "has some queen cells"}
+          - {max: 4, text: "has at least several queen cells"}
+          - {text: "has many queen cells"}
+      "<":
+        exact: "has fewer than {v} queen cells"
+        approximate: "has fewer than around {approx} queen cells"
+        qualitative:
+          - {max: 2, text: "has at most one queen cell"}
+          - {max: 4, text: "has only a few queen cells"}
+          - {text: "does not have many queen cells"}
+    overrides:
+      - {op: ">=", value: 1, text: "has at least one queen cell"}
+      - {op: "<", value: 1, text: "has no queen cells"}
+
+  queen_age:
+    type: numeric
+    range: [1, 5]
+    label: queen age
+    yes_when: high
+    aliases: [queen is]
+    phrases:
+      ">=":
+        exact: "has a queen at least {v} years old"
+        approximate: "has a queen around {approx} years old or older"
+        qualitative:
+          - {max: 2, text: "does not have a first-year queen"}
+          - {max: 3, text: "has a queen that is at least a few years old"}
+          - {text: "has an old queen"}
+      "<":
+        exact: "has a queen younger than {v} years"
+        approximate: "has a queen younger than around {approx} years"
+        qualitative:
+          - {max: 2, text: "has a first-year queen"}
+          - {max: 3, text: "has a young queen"}
+          - {text: "does not have an old queen"}
+
+  mites:
+    type: numeric
+    range: [0, 12]
+    label: mite count
+    yes_when: low
+    aliases: [mite, mites, varroa]
+    phrases:
+      ">=":
+        exact: "has a mite count of at least {v} per 100 bees"
+        approximate: "has a mite count of around {approx} or more per 100 bees"
+        qualitative:
+          - {max: 2, text: "has some mites"}
+          - {max: 6, text: "has at least a moderate mite load"}
+          - {text: "has a heavy mite load"}
+      "<":
+        exact: "has a mite count below {v} per 100 bees"
+        approximate: "has a mite count below around {approx} per 100 bees"
+        qualitative:
+          - {max: 2, text: "has few or no mites"}
+          - {max: 6, text: "does not have a heavy mite load"}
+          - {text: "does not have an extreme mite load"}
+
+  temperature:
+    type: numeric
+    range: [5, 35]
+    label: outside temperature
+    yes_when: high
+    aliases: [temperature, warm, cold]
+    phrases:
+      ">=":
+        exact: "has an outside temperature of at least {v}°C"
+        approximate: "has an outside temperature of around {approx}°C or more"
+        qualitative:
+          - {max: 12, text: "is not in cold weather"}
+          - {max: 20, text: "is in at least mild weather"}
+          - {text: "is in warm weather"}
+      "<":
+        exact: "has an outside temperature below {v}°C"
+        approximate: "has an outside temperature below around {approx}°C"
+        qualitative:
+          - {max: 12, text: "is in cold weather"}
+          - {max: 20, text: "is in cool weather"}
+          - {text: "is not in warm weather"}
+
+  nectar_flow:
+    type: categorical
+    values: [none, light, strong]
+    label: nectar flow
+    yes_when: [light, strong]   # all values but one: the sampler only draws != for 3-value categories
+    aliases: [nectar]
+    phrases:
+      values: {none: "has no nectar flow", light: "has a light nectar flow", strong: "has a strong nectar flow"}
+      not_values: {none: "has some nectar flow", light: "does not have a light nectar flow", strong: "does not have a strong nectar flow"}
+    display: {none: none, light: light, strong: strong}
+    mirror: {none: strong, strong: none}
+
+  drones:
+    type: bool
+    label: drones
+    yes_when: true
+    aliases: [drone]
+    phrases: {"true": "has drones present", "false": "has no drones present"}
+    display: {true: has drones present, false: has no drones present}
+
+  apiary:
+    type: categorical
+    values: [meadow, orchard, forest]
+    label: apiary
+    aliases: [meadow, orchard, forest, apiary]
+    sensitive: true   # not part of the rules (no prior), like demographics in triage
+    phrases:
+      values: {meadow: "stands in the meadow apiary", orchard: "stands in the orchard apiary", forest: "stands in the forest apiary"}
+      not_values: {meadow: "does not stand in the meadow apiary", orchard: "does not stand in the orchard apiary", forest: "does not stand in the forest apiary"}

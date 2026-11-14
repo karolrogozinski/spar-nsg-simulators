@@ -7,6 +7,9 @@
   abstract  features renamed "feature A".., "flag B".., "category C".. (numbers rescaled
             monotonically to 0-100, categories to alpha / beta / ...), with generic wording, so
             domain knowledge no longer predicts the decision
+  partial   inputs, rules and labels unchanged; every explanation starts with the domain's
+            `partial_note` ("This is a simplified summary ..."), so it no longer claims to be the
+            complete rule
 """
 
 from __future__ import annotations
@@ -70,11 +73,15 @@ class AbstractMap:
 # --- apply ---------------------------------------------------------------------
 
 def transform_domain(domain: Domain, transform: str) -> Domain:
-    return domain if transform == "mirror" else AbstractMap(domain).domain
+    return AbstractMap(domain).domain if transform == "abstract" else domain
 
 
 def derive_records(base_records: list[dict], base_domain: Domain, transform: str, levels: list[Level],
                    dataset_name: str, llm=None) -> tuple[list[dict], Domain]:
+    if transform == "partial":
+        note = base_domain.explanation["partial_note"]
+        return [{**r, "dataset": dataset_name, "explanation_text": note + r["explanation_text"],
+                 "variant": transform, "paired_record_id": r["record_id"]} for r in base_records], base_domain
     if transform == "mirror":
         domain = base_domain
         map_input = lambda x: mirror_input(base_domain, x)  # noqa: E731
@@ -92,7 +99,7 @@ def derive_records(base_records: list[dict], base_domain: Domain, transform: str
         f = from_spec(r["rule"]).map_conditions(map_cond)
         g = from_spec(r["described_rule"]).map_conditions(map_cond)
         distractors = [map_feature(d) for d in r["distractors"]] if r["distractors"] else None
-        tkey = (r["rule_id"], r["explanation_type"], r.get("edit_size"), r["level"])
+        tkey = (r["rule_id"], r["explanation_type"], r.get("edit_size"), r.get("edit_target"), r["level"])
         if tkey not in texts:
             lvl = by_id[r["level"]]
             formal = g.formal() if lvl.formal else None

@@ -1,0 +1,19 @@
+# EXP-011 generalisation: the triage_sim_v2 recipe in the `triage_v3` domain (strong medical priors; triage_sim_v2 recipe on the triage_v3 wording (bound-style P2 words)).
+# Neutral features stay out of the rules, like demographics in triage. Twins: triage_sim_counter_v3
+# (mirror) and triage_sim_abstract_v3 (abstract), identical labels record by record.
+name: triage_sim_v3
+description: 16 intuitive sampled triage_v3 rules (3-5 conditions); faithful and omission (1 or 2 conditions) at P0-P3; exact balance.
+domain: triage_v3
+seed: 0
+rule_sampler:
+  n_rules: 16
+  n_conditions: [3, 5]
+  connectors: {and: 3, or: 1, unless: 1, at_least: {weight: 1, k: [2, 3]}}
+  max_depth: 2
+  direction: intuitive
+  features: {exclude: [age, sex, insurance]}
+  rule_yes_rate: [0.25, 0.75]
+explanations:
+  types: [faithful, omission]
+  omission: {n: [1, 2]}
+counterfactuals: {n_reference: 4, n_per_reference: 8, balance: exact}

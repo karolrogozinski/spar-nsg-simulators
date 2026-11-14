@@ -1,0 +1,5 @@
+# Counter-intuitive twin: every threshold and value mirrored (EXP-011); labels identical record by record.
+name: irrigation_sim_counter_v1
+description: mirror transform of irrigation_sim_v1.
+derive_from: irrigation_sim_v1
+transform: mirror

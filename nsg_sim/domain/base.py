@@ -23,6 +23,7 @@ DEFAULT_EXPLANATION = {
     "unless": ", unless the {subject} ",
     "features_only": "The decision was driven mainly by the {subject}'s {features}.",
     "distractor": "The {subject}'s {features} were also reviewed but did not change the outcome.",
+    "partial_note": "A simplified summary, which may not list every criterion: ",
 }
 
 

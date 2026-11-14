@@ -1,0 +1,29 @@
+# EXP-010: how examples (other past decisions of the same nurse) combine with explanations.
+# The same recipe as triage_sim_v2 (same rules, references and counterfactuals: records with
+# evidence_condition "none" are identical to it), plus evidence sets of 5 past decisions:
+#   faithful      k0 sets (examples never contradict a faithful explanation), at P0-P3
+#   omission n=1  k0 / k1 / k3 sets (k of the 5 examples contradict the explanation), at P0-P2
+# Evidence sets are nested (k1 = k0 with one swap, k3 extends k1). omission n=2 is built because the
+# recipe must match triage_sim_v2, and is filtered out in the experiment.
+name: triage_evidence_v1
+description: triage_sim_v2 plus 5 past decisions per case (0/1/3 contradicting the omission explanation).
+domain: triage
+seed: 0
+rule_sampler:
+  n_rules: 16
+  n_conditions: [3, 5]
+  connectors: {and: 3, or: 1, unless: 1, at_least: {weight: 1, k: [2, 3]}}
+  max_depth: 2
+  direction: intuitive
+  features: {exclude: [age, sex, insurance]}
+  rule_yes_rate: [0.25, 0.75]
+explanations:
+  types: [faithful, omission]
+  omission: {n: [1, 2]}
+counterfactuals: {n_reference: 4, n_per_reference: 8, balance: exact}
+evidence:
+  n: 5
+  types: [omission]
+  contradicting: [0, 1, 3]
+  other_types_contradicting: [0]
+  levels: [P0, P1, P2, P3]

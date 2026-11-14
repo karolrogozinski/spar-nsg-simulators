@@ -1,0 +1,229 @@
+# Consumer loans: does a bank officer approve the loan? Strong common-sense priors (income, credit
+# score, debt, missed payments), so the mirror twin reads clearly counter-intuitive. EXP-011.
+# Qualitative words for intermediate thresholds state a bound ("at least a moderate income"), not a
+# band, to avoid the literal-band misreadings found in EXP-008.
+name: loan
+description: Loan decisions on a short applicant record (finances, credit history, employment).
+
+task:
+  actor: bank loan officer
+  actor_short: officer
+  subject: applicant
+  decision: The officer decides whether the applicant's loan is approved (YES) or not (NO).
+
+explanation:
+  intro: "The loan is approved if the applicant "
+  unless: ", unless the applicant "
+  features_only: "The decision was driven mainly by the applicant's {features}."
+  distractor: "The applicant's {features} were also checked but did not change the decision."
+  partial_note: "A simplified summary, which may not list every criterion: "
+
+profile: >-
+  The applicant is a {age}-year-old {sex} who has {employment} and a work history of
+  {years_employed} year{years_employed|s}, an annual income of ${income}k and a credit score of
+  {credit_score}. They are asking for ${loan_amount}k, already spend {debt_ratio}% of their income on
+  debt, and have missed {missed_payments} payment{missed_payments|s} in the last two years. The
+  applicant {owns_home} and {guarantor} a guarantor.
+
+features:
+  income:
+    type: numeric
+    range: [10, 200]
+    step: 5
+    label: income
+    yes_when: high
+    aliases: [income, earn, salary]
+    phrases:
+      ">=":
+        exact: "has an annual income of at least ${v}k"
+        approximate: "has an annual income of around ${approx}k or more"
+        qualitative:
+          - {max: 30, text: "does not have a very low income"}
+          - {max: 60, text: "has at least a moderate income"}
+          - {max: 110, text: "has a good income"}
+          - {text: "has a high income"}
+      "<":
+        exact: "has an annual income below ${v}k"
+        approximate: "has an annual income below around ${approx}k"
+        qualitative:
+          - {max: 30, text: "has a very low income"}
+          - {max: 60, text: "has a low income"}
+          - {max: 110, text: "does not have a good income"}
+          - {text: "does not have a high income"}
+
+  credit_score:
+    type: numeric
+    range: [300, 850]
+    step: 10
+    label: credit score
+    yes_when: high
+    aliases: [credit score, credit rating]
+    phrases:
+      ">=":
+        exact: "has a credit score of at least {v}"
+        approximate: "has a credit score of around {approx} or more"
+        qualitative:
+          - {max: 500, text: "does not have a very poor credit score"}
+          - {max: 650, text: "has at least a fair credit score"}
+          - {max: 740, text: "has a good credit score"}
+          - {text: "has an excellent credit score"}
+      "<":
+        exact: "has a credit score below {v}"
+        approximate: "has a credit score below around {approx}"
+        qualitative:
+          - {max: 500, text: "has a very poor credit score"}
+          - {max: 650, text: "has a poor credit score"}
+          - {max: 740, text: "does not have a good credit score"}
+          - {text: "does not have an excellent credit score"}
+
+  debt_ratio:
+    type: numeric
+    range: [0, 80]
+    step: 5
+    label: debt-to-income ratio
+    yes_when: low
+    aliases: [debt]
+    phrases:
+      ">=":
+        exact: "spends at least {v}% of their income on debt"
+        approximate: "spends around {approx}% or more of their income on debt"
+        qualitative:
+          - {max: 15, text: "has some debt"}
+          - {max: 40, text: "has at least a moderate debt load"}
+          - {text: "has a heavy debt load"}
+      "<":
+        exact: "spends less than {v}% of their income on debt"
+        approximate: "spends less than around {approx}% of their income on debt"
+        qualitative:
+          - {max: 15, text: "has little or no debt"}
+          - {max: 40, text: "does not have a heavy debt load"}
+          - {text: "does not have an extreme debt load"}
+
+  years_employed:
+    type: numeric
+    range: [0, 30]
+    label: work history
+    yes_when: high
+    aliases: [work history, worked]
+    phrases:
+      ">=":
+        exact: "has a work history of at least {v} years"
+        approximate: "has a work history of around {approx} years or more"
+        qualitative:
+          - {max: 3, text: "has more than a short work history"}
+          - {max: 10, text: "has a work history of several years or more"}
+          - {text: "has a long work history"}
+      "<":
+        exact: "has a work history of less than {v} years"
+        approximate: "has a work history of less than around {approx} years"
+        qualitative:
+          - {max: 3, text: "has only a short work history"}
+          - {max: 10, text: "does not have a work history of many years"}
+          - {text: "does not have a very long work history"}
+    overrides:
+      - {op: "<", value: 1, text: "has no work history"}
+
+  loan_amount:
+    type: numeric
+    range: [5, 100]
+    step: 5
+    label: loan amount
+    yes_when: low
+    aliases: [amount, asking for, borrow]
+    phrases:
+      ">=":
+        exact: "is asking for at least ${v}k"
+        approximate: "is asking for around ${approx}k or more"
+        qualitative:
+          - {max: 20, text: "is not asking for a very small loan"}
+          - {max: 50, text: "is asking for at least a medium-sized loan"}
+          - {text: "is asking for a large loan"}
+      "<":
+        exact: "is asking for less than ${v}k"
+        approximate: "is asking for less than around ${approx}k"
+        qualitative:
+          - {max: 20, text: "is asking for a small loan"}
+          - {max: 50, text: "is not asking for a large loan"}
+          - {text: "is not asking for a very large loan"}
+
+  missed_payments:
+    type: numeric
+    range: [0, 6]
+    label: missed payments
+    yes_when: low
+    aliases: [missed, payments]
+    phrases:
+      ">=":
+        exact: "has missed at least {v} payments in the last two years"
+        approximate: "has missed around {approx} or more payments in the last two years"
+        qualitative:
+          - {max: 2, text: "has missed some payments"}
+          - {text: "has missed many payments"}
+      "<":
+        exact: "has missed fewer than {v} payments in the last two years"
+        approximate: "has missed fewer than around {approx} payments in the last two years"
+        qualitative:
+          - {max: 2, text: "has missed at most one payment"}
+          - {text: "has not missed many payments"}
+    overrides:
+      - {op: ">=", value: 1, text: "has missed at least one payment in the last two years"}
+      - {op: "<", value: 1, text: "has not missed any payment in the last two years"}
+
+  owns_home:
+    type: bool
+    label: home ownership
+    yes_when: true
+    aliases: [home, owns, rents]
+    phrases: {"true": "owns their home", "false": "does not own their home"}
+    display: {true: owns their home, false: does not own their home}
+
+  guarantor:
+    type: bool
+    label: guarantor
+    yes_when: true
+    aliases: [guarantor]
+    phrases: {"true": "has a guarantor", "false": "does not have a guarantor"}
+    display: {true: has, false: does not have}
+
+  employment:
+    type: categorical
+    values: [permanent, temporary, none]
+    label: employment type
+    yes_when: [permanent, temporary]   # all values but one: the sampler only draws != for 3-value categories
+    aliases: [permanent, temporary, job]
+    phrases:
+      values: {permanent: "has a permanent job", temporary: "has a temporary job", none: "has no current job"}
+      not_values: {permanent: "does not have a permanent job", temporary: "does not have a temporary job", none: "has a current job"}
+    display: {permanent: a permanent job, temporary: a temporary job, none: no current job}
+    mirror: {permanent: none, none: permanent}
+
+  age:
+    type: numeric
+    range: [18, 80]
+    label: age
+    yes_when: high
+    aliases: [years old, younger, older]
+    sensitive: true
+    phrases:
+      ">=":
+        exact: "is at least {v} years old"
+        approximate: "is around {approx} or older"
+        qualitative:
+          - {max: 30, text: "is not very young"}
+          - {max: 60, text: "is middle-aged or older"}
+          - {text: "is elderly"}
+      "<":
+        exact: "is younger than {v}"
+        approximate: "is younger than around {approx}"
+        qualitative:
+          - {max: 30, text: "is young"}
+          - {max: 60, text: "is not elderly"}
+          - {text: "is not very old"}
+
+  sex:
+    type: categorical
+    values: [female, male]
+    label: sex
+    aliases: [female, male]
+    sensitive: true
+    phrases: {"==": "is {v}", "!=": "is not {v}"}

@@ -1,0 +1,17 @@
+# EXP-008: can more reasoning or a larger model raise the P2 ceiling? Faithful P2 errors of gpt-oss-20b@low
+# are mostly cases whose label depends on the exact threshold, which qualitative words do not give.
+# Only P1 (reference: thresholds stated) and P2; same sample as E1/E2 (per_cell 8, seed 0), so
+# results compare record by record. gpt-oss@low is rerun as the within-run reference.
+name: sim_e8_p2_abstract
+dataset: triage_sim_abstract_v1
+filter: {levels: [P1, P2]}
+sample: {per_cell: 8, seed: 0}
+simulators:
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: low, label: gpt-oss-20b@low, tags: {family: gpt-oss, size_b: 20, reasoning: low}}
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: medium, label: gpt-oss-20b@medium, tags: {family: gpt-oss, size_b: 20, reasoning: medium}}
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: high, label: gpt-oss-20b@high, tags: {family: gpt-oss, size_b: 20, reasoning: high}}
+  - {backend: openrouter, model: "openai/gpt-oss-120b", reasoning_effort: low, label: gpt-oss-120b@low, tags: {family: gpt-oss, size_b: 120, reasoning: low}}
+  - {backend: openrouter, model: "openai/gpt-oss-120b", reasoning_effort: high, label: gpt-oss-120b@high, tags: {family: gpt-oss, size_b: 120, reasoning: high}}
+# max_tokens 16384 truncated ~15% of gpt-oss-20b@high answers (reasoning loops, mostly on no-explanation
+# prompts); those were moved to *.truncated_16k.jsonl.bak and re-asked with 32768.
+run: {concurrency: 32, max_tokens: 32768, timeout: 900, max_requests: 1500}

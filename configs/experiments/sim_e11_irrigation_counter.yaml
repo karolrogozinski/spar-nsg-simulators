@@ -1,0 +1,8 @@
+# EXP-011 generalisation: gpt-oss-20b@low on the counter twin of the irrigation domain (irrigation_sim_counter_v1); omission n=2 left out.
+name: sim_e11_irrigation_counter
+dataset: irrigation_sim_counter_v1
+filter:
+  where: {edit_size: [null, 1]}
+simulators:
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: low, label: gpt-oss-20b@low, tags: {family: gpt-oss, size_b: 20, reasoning: low}}
+run: {concurrency: 16, max_tokens: 4096, timeout: 300, max_requests: 9000}

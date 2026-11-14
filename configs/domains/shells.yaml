@@ -1,0 +1,177 @@
+# Shells: does a conchologist identify a shell as an "orra" (an invented species of the Telo reef)?
+# Natural words, invented species: no priors. `yes_when` is ARBITRARY here; the "intuitive" and
+# mirror twins are two equally arbitrary rules. EXP-011.
+name: shells
+description: Identification of reef shells as the orra species (whorls, length, spines, ribs, ...).
+
+task:
+  actor: conchologist surveying the Telo reef
+  actor_short: conchologist
+  subject: shell
+  decision: The conchologist decides whether the shell is identified as an orra (YES) or not (NO).
+
+explanation:
+  intro: "The shell is identified as an orra if the shell "
+  unless: ", unless the shell "
+  features_only: "The decision was driven mainly by the shell's {features}."
+  distractor: "The shell's {features} were also checked but did not change the decision."
+  partial_note: "A simplified summary, which may not list every criterion: "
+
+profile: >-
+  The shell was brought in by the {collector} collector and has a {interior} interior. It is {length}
+  cm long with {whorls} whorl{whorls|s}, a wall {thickness} mm thick, {spines} spine{spines|s} and
+  {ribs} rib{ribs|s} on its surface. The shell {nacre} and {coiling}.
+
+features:
+  whorls:
+    type: numeric
+    range: [1, 12]
+    label: number of whorls
+    yes_when: high
+    aliases: [whorl, whorls, coiled]
+    phrases:
+      ">=":
+        exact: "has at least {v} whorls"
+        approximate: "has around {approx} whorls or more"
+        qualitative:
+          - {max: 4, text: "has more than a few whorls"}
+          - {max: 8, text: "has at least a fair number of whorls"}
+          - {text: "has many whorls"}
+      "<":
+        exact: "has fewer than {v} whorls"
+        approximate: "has fewer than around {approx} whorls"
+        qualitative:
+          - {max: 4, text: "has few whorls"}
+          - {max: 8, text: "does not have many whorls"}
+          - {text: "does not have a great many whorls"}
+
+  length:
+    type: numeric
+    range: [1, 30]
+    label: length
+    yes_when: low
+    aliases: [long, length, cm]
+    phrases:
+      ">=":
+        exact: "is at least {v} cm long"
+        approximate: "is around {approx} cm long or more"
+        qualitative:
+          - {max: 8, text: "is not small"}
+          - {max: 18, text: "is at least medium-sized"}
+          - {text: "is large"}
+      "<":
+        exact: "is less than {v} cm long"
+        approximate: "is less than around {approx} cm long"
+        qualitative:
+          - {max: 8, text: "is small"}
+          - {max: 18, text: "is not large"}
+          - {text: "is not very large"}
+
+  thickness:
+    type: numeric
+    range: [1, 10]
+    label: wall thickness
+    yes_when: high
+    aliases: [thick, thin, wall]
+    phrases:
+      ">=":
+        exact: "has a wall at least {v} mm thick"
+        approximate: "has a wall around {approx} mm thick or more"
+        qualitative:
+          - {max: 3, text: "does not have a thin wall"}
+          - {max: 6, text: "has at least a moderately thick wall"}
+          - {text: "has a thick wall"}
+      "<":
+        exact: "has a wall less than {v} mm thick"
+        approximate: "has a wall less than around {approx} mm thick"
+        qualitative:
+          - {max: 3, text: "has a thin wall"}
+          - {max: 6, text: "does not have a thick wall"}
+          - {text: "does not have a very thick wall"}
+
+  spines:
+    type: numeric
+    range: [0, 20]
+    label: number of spines
+    yes_when: low
+    aliases: [spine, spines, spiny]
+    phrases:
+      ">=":
+        exact: "has at least {v} spines"
+        approximate: "has around {approx} spines or more"
+        qualitative:
+          - {max: 4, text: "has some spines"}
+          - {max: 12, text: "has at least a fair number of spines"}
+          - {text: "has many spines"}
+      "<":
+        exact: "has fewer than {v} spines"
+        approximate: "has fewer than around {approx} spines"
+        qualitative:
+          - {max: 4, text: "has few or no spines"}
+          - {max: 12, text: "does not have many spines"}
+          - {text: "does not have a great many spines"}
+    overrides:
+      - {op: ">=", value: 1, text: "has at least one spine"}
+      - {op: "<", value: 1, text: "has no spines"}
+
+  ribs:
+    type: numeric
+    range: [0, 40]
+    label: number of ribs
+    yes_when: high
+    aliases: [rib, ribs, ribbed]
+    phrases:
+      ">=":
+        exact: "has at least {v} ribs on its surface"
+        approximate: "has around {approx} ribs or more on its surface"
+        qualitative:
+          - {max: 10, text: "has some ribs on its surface"}
+          - {max: 25, text: "has at least a fair number of ribs on its surface"}
+          - {text: "has many ribs on its surface"}
+      "<":
+        exact: "has fewer than {v} ribs on its surface"
+        approximate: "has fewer than around {approx} ribs on its surface"
+        qualitative:
+          - {max: 10, text: "has few or no ribs on its surface"}
+          - {max: 25, text: "does not have many ribs on its surface"}
+          - {text: "does not have a great many ribs on its surface"}
+    overrides:
+      - {op: ">=", value: 1, text: "has at least one rib on its surface"}
+      - {op: "<", value: 1, text: "has no ribs on its surface"}
+
+  interior:
+    type: categorical
+    values: [pink, cream, grey]
+    label: interior colour
+    yes_when: [pink, cream]   # arbitrary; all values but one (the sampler only draws != for 3 values)
+    aliases: [interior, pink, cream, grey]
+    phrases:
+      values: {pink: "has a pink interior", cream: "has a cream interior", grey: "has a grey interior"}
+      not_values: {pink: "does not have a pink interior", cream: "does not have a cream interior", grey: "does not have a grey interior"}
+    mirror: {grey: pink, pink: grey}
+
+  nacre:
+    type: bool
+    label: nacre layer
+    yes_when: false
+    aliases: [nacre, pearly]
+    phrases: {"true": "has a nacre layer", "false": "has no nacre layer"}
+    display: {true: has a nacre layer, false: has no nacre layer}
+
+  coiling:
+    type: bool
+    label: left coiling
+    yes_when: true
+    aliases: [coils, coiling, left]
+    phrases: {"true": "coils to the left", "false": "coils to the right"}
+    display: {true: coils to the left, false: coils to the right}
+
+  collector:
+    type: categorical
+    values: [north, south, lagoon]
+    label: collector
+    aliases: [collector]
+    sensitive: true   # not part of the rules, like demographics in triage
+    phrases:
+      values: {north: "was brought in by the north collector", south: "was brought in by the south collector", lagoon: "was brought in by the lagoon collector"}
+      not_values: {north: "was not brought in by the north collector", south: "was not brought in by the south collector", lagoon: "was not brought in by the lagoon collector"}

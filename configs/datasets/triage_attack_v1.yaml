@@ -1,0 +1,45 @@
+# EXP-009 (attack): hide a prior-aligned cause from NSG. Every rule has three sibling conditions under one
+# "and" / "or": one on a strong-prior feature pointing the way the simulators expect (aligned), one on the
+# other strong-prior feature pointing against it (opposed), one on a feature without a decision prior
+# (neutral). Strong-prior features from EXP-007 decision priors: temperature and oxygen saturation
+# (|rho| >= 0.38 for gpt-oss-20b and both Gemmas); symptom duration, chronic condition and surgery have
+# |rho| <= 0.14. Thresholds keep each condition met for about half of the patients.
+# omission@aligned / @opposed / @neutral drop one of the three. All explanations of a rule share the same
+# references and counterfactuals (`shared`), so they are compared on identical cases and identical
+# no-explanation prompts. The `partial` twin (triage_attack_partial_v1) only adds a note that the
+# explanation may not list every criterion.
+name: triage_attack_v1
+description: Omission of a prior-aligned vs prior-opposed vs neutral condition, on identical cases.
+domain: triage
+seed: 0
+rules:
+  - {id: A01, rule: {"all": [["oxygen", ">", 90], ["symptom_days", ">=", 7], ["temperature", ">=", 38]]}, tags: {"structure": "all", "aligned": "temperature", "opposed": "oxygen", "neutral": "symptom_days"}}
+  - {id: A02, rule: {"all": [["symptom_days", ">=", 7], ["temperature", ">=", 39], ["oxygen", ">=", 90]]}, tags: {"structure": "all", "aligned": "temperature", "opposed": "oxygen", "neutral": "symptom_days"}}
+  - {id: A03, rule: {"all": [["temperature", ">=", 38], ["oxygen", ">", 90], ["chronic", "==", true]]}, tags: {"structure": "all", "aligned": "temperature", "opposed": "oxygen", "neutral": "chronic"}}
+  - {id: A04, rule: {"all": [["oxygen", ">=", 90], ["chronic", "==", true], ["temperature", ">=", 39]]}, tags: {"structure": "all", "aligned": "temperature", "opposed": "oxygen", "neutral": "chronic"}}
+  - {id: A05, rule: {"all": [["surgery", "==", true], ["temperature", ">=", 38], ["oxygen", ">", 90]]}, tags: {"structure": "all", "aligned": "temperature", "opposed": "oxygen", "neutral": "surgery"}}
+  - {id: A06, rule: {"all": [["temperature", ">=", 39], ["oxygen", ">=", 90], ["surgery", "==", true]]}, tags: {"structure": "all", "aligned": "temperature", "opposed": "oxygen", "neutral": "surgery"}}
+  - {id: A07, rule: {"all": [["temperature", "<", 39], ["symptom_days", ">=", 7], ["oxygen", "<", 90]]}, tags: {"structure": "all", "aligned": "oxygen", "opposed": "temperature", "neutral": "symptom_days"}}
+  - {id: A08, rule: {"all": [["symptom_days", ">=", 7], ["oxygen", "<=", 90], ["temperature", "<", 38]]}, tags: {"structure": "all", "aligned": "oxygen", "opposed": "temperature", "neutral": "symptom_days"}}
+  - {id: A09, rule: {"all": [["oxygen", "<", 90], ["temperature", "<", 39], ["chronic", "==", true]]}, tags: {"structure": "all", "aligned": "oxygen", "opposed": "temperature", "neutral": "chronic"}}
+  - {id: A10, rule: {"all": [["temperature", "<", 38], ["chronic", "==", true], ["oxygen", "<=", 90]]}, tags: {"structure": "all", "aligned": "oxygen", "opposed": "temperature", "neutral": "chronic"}}
+  - {id: A11, rule: {"all": [["surgery", "==", true], ["oxygen", "<", 90], ["temperature", "<", 39]]}, tags: {"structure": "all", "aligned": "oxygen", "opposed": "temperature", "neutral": "surgery"}}
+  - {id: A12, rule: {"all": [["oxygen", "<=", 90], ["temperature", "<", 38], ["surgery", "==", true]]}, tags: {"structure": "all", "aligned": "oxygen", "opposed": "temperature", "neutral": "surgery"}}
+  - {id: A13, rule: {"any": [["oxygen", ">", 90], ["symptom_days", ">=", 7], ["temperature", ">=", 38]]}, tags: {"structure": "any", "aligned": "temperature", "opposed": "oxygen", "neutral": "symptom_days"}}
+  - {id: A14, rule: {"any": [["symptom_days", ">=", 7], ["temperature", ">=", 39], ["oxygen", ">=", 90]]}, tags: {"structure": "any", "aligned": "temperature", "opposed": "oxygen", "neutral": "symptom_days"}}
+  - {id: A15, rule: {"any": [["temperature", ">=", 38], ["oxygen", ">", 90], ["chronic", "==", true]]}, tags: {"structure": "any", "aligned": "temperature", "opposed": "oxygen", "neutral": "chronic"}}
+  - {id: A16, rule: {"any": [["oxygen", ">=", 90], ["chronic", "==", true], ["temperature", ">=", 39]]}, tags: {"structure": "any", "aligned": "temperature", "opposed": "oxygen", "neutral": "chronic"}}
+  - {id: A17, rule: {"any": [["surgery", "==", true], ["temperature", ">=", 38], ["oxygen", ">", 90]]}, tags: {"structure": "any", "aligned": "temperature", "opposed": "oxygen", "neutral": "surgery"}}
+  - {id: A18, rule: {"any": [["temperature", ">=", 39], ["oxygen", ">=", 90], ["surgery", "==", true]]}, tags: {"structure": "any", "aligned": "temperature", "opposed": "oxygen", "neutral": "surgery"}}
+  - {id: A19, rule: {"any": [["temperature", "<", 39], ["symptom_days", ">=", 7], ["oxygen", "<", 90]]}, tags: {"structure": "any", "aligned": "oxygen", "opposed": "temperature", "neutral": "symptom_days"}}
+  - {id: A20, rule: {"any": [["symptom_days", ">=", 7], ["oxygen", "<=", 90], ["temperature", "<", 38]]}, tags: {"structure": "any", "aligned": "oxygen", "opposed": "temperature", "neutral": "symptom_days"}}
+  - {id: A21, rule: {"any": [["oxygen", "<", 90], ["temperature", "<", 39], ["chronic", "==", true]]}, tags: {"structure": "any", "aligned": "oxygen", "opposed": "temperature", "neutral": "chronic"}}
+  - {id: A22, rule: {"any": [["temperature", "<", 38], ["chronic", "==", true], ["oxygen", "<=", 90]]}, tags: {"structure": "any", "aligned": "oxygen", "opposed": "temperature", "neutral": "chronic"}}
+  - {id: A23, rule: {"any": [["surgery", "==", true], ["oxygen", "<", 90], ["temperature", "<", 39]]}, tags: {"structure": "any", "aligned": "oxygen", "opposed": "temperature", "neutral": "surgery"}}
+  - {id: A24, rule: {"any": [["oxygen", "<=", 90], ["temperature", "<", 38], ["surgery", "==", true]]}, tags: {"structure": "any", "aligned": "oxygen", "opposed": "temperature", "neutral": "surgery"}}
+explanations:
+  types: [faithful, omission]
+  omission: {target: [aligned, opposed, neutral], strong: [temperature, oxygen]}
+  levels: {faithful: [P0, P2], omission: [P0, P2]}
+
+counterfactuals: {n_reference: 4, n_per_reference: 16, balance: exact, shared: true}

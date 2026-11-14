@@ -1,0 +1,8 @@
+# EXP-010: explanations combined with 5 past decisions. omission n=2 is left out (see the dataset recipe).
+name: sim_e10_evidence
+dataset: triage_evidence_v1
+filter:
+  where: {edit_size: [null, 1]}
+simulators:
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: low, label: gpt-oss-20b@low, tags: {family: gpt-oss, size_b: 20, reasoning: low}}
+run: {concurrency: 32, max_tokens: 4096, timeout: 300, max_requests: 16000}

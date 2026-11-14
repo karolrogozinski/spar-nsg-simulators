@@ -1,0 +1,8 @@
+# EXP-009 (attack): omission of a prior-aligned / prior-opposed / neutral condition on identical cases,
+# explanations framed as the complete rule (triage_attack_v1). See notes/experiments/EXP-009.md.
+# Pilot: gpt-oss-20b@low first; gpt-oss-120b and gemma-3-27b are added after the pilot looks sane.
+name: sim_e9_attack_complete
+dataset: triage_attack_v1
+simulators:
+  - {backend: openrouter, model: "openai/gpt-oss-20b", reasoning_effort: low, label: gpt-oss-20b@low, tags: {family: gpt-oss, size_b: 20, reasoning: low}}
+run: {concurrency: 32, max_tokens: 4096, timeout: 300, max_requests: 15000}

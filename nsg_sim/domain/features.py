@@ -7,7 +7,9 @@ A feature is one of
 
 Phrases turn a condition (feature, op, value) into text at a specificity style:
   exact        "has a credit score of at least 600"
-  approximate  "has a credit score of roughly 600 or higher"
+  approximate  "has a credit score of roughly 600 or higher"; a template with {approx} states the
+               threshold rounded to a nearby round number instead ("of around 600 or higher" for 580),
+               so the simulator does not learn the exact cut (see Feature.approximate)
   qualitative  "has a reasonably good credit score"
 Domains may give their own phrases per operator and style; anything missing falls back to
 generic defaults built from the feature's label, so a new domain can start with no phrases at all.
@@ -15,6 +17,7 @@ generic defaults built from the feature's label, so a new domain can start with 
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 def compare(value, op: str, threshold) -> bool:
@@ -47,6 +50,7 @@ class Feature:
     aliases: list = field(default_factory=list)     # other words that name the feature in texts (text checks)
     yes_when: object = None         # what makes a YES more plausible: "high" / "low" (numeric),
                                     # true / false (bool), a list of values (categorical)
+    approx_unit: int | None = None  # numeric: rounding unit of {approx} (default: rounding_unit())
 
     def names(self) -> list[str]:
         """Words that count as mentioning the feature: its label and aliases."""
@@ -140,6 +144,25 @@ class Feature:
             return f"has {self.label} equal to {value}" if op == "==" else f"does not have {self.label} equal to {value}"
         return self._numeric_phrase(op, value, style)
 
+    def rounding_unit(self) -> int:
+        """Unit of the approximate threshold: 10% of the range on a 1-2-5 scale, at least two grid steps
+        (so rounding can always move the threshold)."""
+        if self.approx_unit:
+            return self.approx_unit
+        return max(nice_number(0.1 * (self.high - self.low)), 2 * (self.step or 1))
+
+    def approximate(self, op: str, value):
+        """The threshold of `op value` (the boundary between meeting and not meeting it) rounded to the
+        nearest multiple of the unit (5 instead of 2 for numbers of 10 or more, when 5 is at most a
+        quarter of the range); kept as it is when rounding would reach the edge of the range, where the
+        condition would read as always or never true."""
+        b = value + (self.step or 1) if op in (">", "<=") else value   # same boundary as >= / <
+        u = self.rounding_unit()
+        if u == 2 and b >= 10 and 5 <= 0.25 * (self.high - self.low) and not self.approx_unit:
+            u = 5   # people round two-digit numbers to fives ("around 90%", not "around 92%")
+        r = int(b / u + 0.5) * u
+        return r if self.low < r <= self.high else b
+
     def _numeric_phrase(self, op: str, value, style: str) -> str:
         entry = self.phrases.get(op, {})
         if not entry and self.step:
@@ -153,12 +176,23 @@ class Feature:
         if isinstance(template, list):  # threshold-calibrated choices: first entry whose bounds hold
             template = next(t["text"] for t in template
                             if t.get("min", value) <= value <= t.get("max", value))
+        if template and "{approx}" in template:
+            return template.format(v=value, approx=self.approximate(op, value))
         if template:
             return template.format(v=value)
         return default_numeric_phrase(self.label, op, value, style, self.low, self.high)
 
 
 EQUIVALENT_OP = {">": (">=", 1), ">=": (">", -1), "<=": ("<", 1), "<": ("<=", -1)}
+
+
+def nice_number(x: float) -> int:
+    """The closest of 1, 2, 5, 10, 20, 50, ... to x (at least 1)."""
+    if x <= 1:
+        return 1
+    e = 10 ** math.floor(math.log10(x))
+    m = x / e
+    return int((1 if m < 1.5 else 2 if m < 3.5 else 5 if m < 7.5 else 10) * e)
 
 
 def default_numeric_phrase(label: str, op: str, value, style: str, low, high) -> str:
@@ -198,6 +232,7 @@ def feature_from_config(name: str, cfg: dict) -> Feature:
         phrases=cfg.get("phrases", {}), overrides=cfg.get("overrides", []),
         mirror_map=cfg.get("mirror", {}), sensitive=cfg.get("sensitive", False),
         aliases=list(cfg.get("aliases", [])), yes_when=_yes_when(name, kind, cfg.get("yes_when")),
+        approx_unit=cfg.get("approx_unit"),
     )
 
 

@@ -8,6 +8,7 @@ so the set is balanced over labels and discriminating cases where possible.
 
 from __future__ import annotations
 
+import itertools
 import json
 import random
 
@@ -49,6 +50,38 @@ def take_round_robin(buckets: dict[tuple, list[dict]], keys: list[tuple], n: int
             if buckets[k] and len(out) < n:
                 out.append(buckets[k].pop(0))
     return out
+
+
+def shared_counterfactuals(domain: Domain, x: dict, f: Node, gs: list[Node], rng: random.Random, focus: list[str],
+                           pool_size: int, n: int, balance: str) -> list[dict]:
+    """One set of counterfactuals for every explanation of a rule.
+
+    Candidates are bucketed by the true decision and by which explanations they tell apart from f (a
+    tuple of flags, one per unfaithful g), and taken round-robin over those buckets within each
+    decision, so each explanation gets a similar share of discriminating cases.
+    """
+    unfaithful = [g for g in gs if g != f]
+    seen, buckets = {key(x)}, {}
+    for _ in range(pool_size):
+        cx = domain.perturb(x, rng, focus)
+        k = key(cx)
+        if k in seen:
+            continue
+        seen.add(k)
+        fx = evaluate(f, domain, cx)
+        disc = tuple(fx != evaluate(g, domain, cx) for g in unfaithful)
+        buckets.setdefault((fx, disc), []).append(cx)
+    by_label = {lab: sorted((k for k in buckets if k[0] == lab), key=lambda k: (-sum(k[1]), k[1])) for lab in (True, False)}
+    if balance == "exact":
+        half = n // 2
+        yes = take_round_robin(buckets, by_label[True], half)
+        no = take_round_robin(buckets, by_label[False], n - half)
+        out = []
+        for i in range(max(len(yes), len(no))):
+            out += [lst[i] for lst in (yes, no) if i < len(lst)]
+        return out
+    keys = [k for pair in itertools.zip_longest(by_label[True], by_label[False]) for k in pair if k is not None]
+    return take_round_robin(buckets, keys, n)
 
 
 def balanced_possible(buckets: dict[tuple, list[dict]], n: int) -> bool:

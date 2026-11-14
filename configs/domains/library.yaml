@@ -1,0 +1,174 @@
+# Library: does a librarian put a book in the front window display? Everyday words, arbitrary
+# decision: no feature has a causal link to the display (popularity, publication year, awards and
+# reviews are deliberately left out). `yes_when` is ARBITRARY here; the "intuitive" and mirror twins
+# are two equally arbitrary rules. EXP-011.
+name: library
+description: Front-window display decisions for library books (pages, chapters, shelf, cover, ...).
+
+task:
+  actor: librarian
+  actor_short: librarian
+  subject: book
+  decision: The librarian decides whether the book goes into the front window display (YES) or not (NO).
+
+explanation:
+  intro: "The book goes into the window display if the book "
+  unless: ", unless the book "
+  features_only: "The decision was driven mainly by the book's {features}."
+  distractor: "The book's {features} were also checked but did not change the decision."
+  partial_note: "A simplified summary, which may not list every criterion: "
+
+profile: >-
+  The book belongs to the {branch} branch and has {cover} cover. It has {pages} pages in {chapters}
+  chapter{chapters|s}, a title of {title_words} word{title_words|s}, sits on shelf {shelf} and its
+  author was born in month {birth_month} of the year. The book {map} and {ribbon}.
+
+features:
+  pages:
+    type: numeric
+    range: [60, 900]
+    step: 10
+    label: page count
+    yes_when: low
+    aliases: [pages, page, long, short, thick, thin]
+    phrases:
+      ">=":
+        exact: "has at least {v} pages"
+        approximate: "has around {approx} pages or more"
+        qualitative:
+          - {max: 250, text: "is not a thin book"}
+          - {max: 550, text: "is at least a medium-length book"}
+          - {text: "is a thick book"}
+      "<":
+        exact: "has fewer than {v} pages"
+        approximate: "has fewer than around {approx} pages"
+        qualitative:
+          - {max: 250, text: "is a thin book"}
+          - {max: 550, text: "is not a thick book"}
+          - {text: "is not a very thick book"}
+
+  chapters:
+    type: numeric
+    range: [1, 60]
+    label: number of chapters
+    yes_when: high
+    aliases: [chapter, chapters]
+    phrases:
+      ">=":
+        exact: "has at least {v} chapters"
+        approximate: "has around {approx} chapters or more"
+        qualitative:
+          - {max: 15, text: "has more than a few chapters"}
+          - {max: 35, text: "has at least a fair number of chapters"}
+          - {text: "has many chapters"}
+      "<":
+        exact: "has fewer than {v} chapters"
+        approximate: "has fewer than around {approx} chapters"
+        qualitative:
+          - {max: 15, text: "has few chapters"}
+          - {max: 35, text: "does not have many chapters"}
+          - {text: "does not have a great many chapters"}
+
+  title_words:
+    type: numeric
+    range: [1, 12]
+    label: title length
+    yes_when: low
+    aliases: [title]
+    phrases:
+      ">=":
+        exact: "has a title of at least {v} words"
+        approximate: "has a title of around {approx} words or more"
+        qualitative:
+          - {max: 3, text: "does not have a very short title"}
+          - {max: 7, text: "has at least a medium-length title"}
+          - {text: "has a long title"}
+      "<":
+        exact: "has a title of fewer than {v} words"
+        approximate: "has a title of fewer than around {approx} words"
+        qualitative:
+          - {max: 3, text: "has a very short title"}
+          - {max: 7, text: "does not have a long title"}
+          - {text: "does not have a very long title"}
+
+  shelf:
+    type: numeric
+    range: [1, 50]
+    label: shelf number
+    yes_when: high
+    aliases: [shelf]
+    phrases:
+      ">=":
+        exact: "sits on shelf {v} or higher"
+        approximate: "sits on around shelf {approx} or higher"
+        qualitative:
+          - {max: 15, text: "does not sit on one of the first shelves"}
+          - {max: 35, text: "sits at least in the middle shelves"}
+          - {text: "sits on one of the last shelves"}
+      "<":
+        exact: "sits on a shelf below {v}"
+        approximate: "sits on a shelf below around {approx}"
+        qualitative:
+          - {max: 15, text: "sits on one of the first shelves"}
+          - {max: 35, text: "does not sit on one of the last shelves"}
+          - {text: "does not sit on the very last shelves"}
+
+  birth_month:
+    type: numeric
+    range: [1, 12]
+    label: author's birth month
+    yes_when: high
+    aliases: [born, birth, month]
+    phrases:
+      ">=":
+        exact: "has an author born in month {v} of the year or later"
+        approximate: "has an author born in around month {approx} of the year or later"
+        qualitative:
+          - {max: 4, text: "has an author not born at the very start of the year"}
+          - {max: 8, text: "has an author born at least in the middle of the year"}
+          - {text: "has an author born late in the year"}
+      "<":
+        exact: "has an author born before month {v} of the year"
+        approximate: "has an author born before around month {approx} of the year"
+        qualitative:
+          - {max: 5, text: "has an author born early in the year"}
+          - {max: 9, text: "has an author not born late in the year"}
+          - {text: "has an author not born at the very end of the year"}
+
+  cover:
+    type: categorical
+    values: [green, ochre, grey]
+    label: cover colour
+    yes_when: [green, ochre]   # arbitrary; all values but one (the sampler only draws != for 3 values)
+    aliases: [cover, green, ochre, grey]
+    phrases:
+      values: {green: "has a green cover", ochre: "has an ochre cover", grey: "has a grey cover"}
+      not_values: {green: "does not have a green cover", ochre: "does not have an ochre cover", grey: "does not have a grey cover"}
+    display: {green: a green, ochre: an ochre, grey: a grey}
+    mirror: {grey: green, green: grey}
+
+  map:
+    type: bool
+    label: map on the endpapers
+    yes_when: true
+    aliases: [map]
+    phrases: {"true": "has a map on its endpapers", "false": "has no map on its endpapers"}
+    display: {true: has a map on its endpapers, false: has no map on its endpapers}
+
+  ribbon:
+    type: bool
+    label: ribbon bookmark
+    yes_when: false
+    aliases: [ribbon]
+    phrases: {"true": "has a ribbon bookmark", "false": "has no ribbon bookmark"}
+    display: {true: has a ribbon bookmark, false: has no ribbon bookmark}
+
+  branch:
+    type: categorical
+    values: [central, riverside, hillside]
+    label: library branch
+    aliases: [branch, central, riverside, hillside]
+    sensitive: true   # not part of the rules, like demographics in triage
+    phrases:
+      values: {central: "belongs to the central branch", riverside: "belongs to the riverside branch", hillside: "belongs to the hillside branch"}
+      not_values: {central: "does not belong to the central branch", riverside: "does not belong to the riverside branch", hillside: "does not belong to the hillside branch"}

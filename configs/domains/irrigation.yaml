@@ -1,0 +1,180 @@
+# Irrigation: does a farmer water the field today? Physical, causal priors (dry soil, heat -> water;
+# rain on the way -> wait) that are weaker and less settled than in triage or loans. EXP-011.
+# Qualitative words for intermediate thresholds state a bound ("at least moderately dry"), not a band.
+name: irrigation
+description: Irrigation decisions on a short field record (soil, weather, crop, water supply).
+
+task:
+  actor: farmer
+  actor_short: farmer
+  subject: field
+  decision: The farmer decides whether the field is watered today (YES) or not (NO).
+
+explanation:
+  intro: "The field is watered if the field "
+  unless: ", unless the field "
+  features_only: "The decision was driven mainly by the field's {features}."
+  distractor: "The field's {features} were also checked but did not change the decision."
+  partial_note: "A simplified summary, which may not list every criterion: "
+
+profile: >-
+  The field is in the {region} of the farm and grows a crop at the {crop_stage} stage. Its soil
+  moisture is {soil_moisture}%, the air temperature is {temperature}°C and the humidity is
+  {humidity}%. It was last watered {days_since_watering} day{days_since_watering|s} ago and
+  the rain forecast for the next two days is {rain_forecast} mm. The field {drip_system} and
+  {water_restriction}.
+
+features:
+  soil_moisture:
+    type: numeric
+    range: [5, 60]
+    label: soil moisture
+    yes_when: low
+    aliases: [soil moisture, moisture, dry, wet]
+    phrases:
+      ">=":
+        exact: "has a soil moisture of at least {v}%"
+        approximate: "has a soil moisture of around {approx}% or more"
+        qualitative:
+          - {max: 20, text: "does not have very dry soil"}
+          - {max: 35, text: "has at least moderately moist soil"}
+          - {text: "has wet soil"}
+      "<":
+        exact: "has a soil moisture below {v}%"
+        approximate: "has a soil moisture below around {approx}%"
+        qualitative:
+          - {max: 20, text: "has very dry soil"}
+          - {max: 35, text: "has dry soil"}
+          - {text: "does not have wet soil"}
+
+  rain_forecast:
+    type: numeric
+    range: [0, 40]
+    label: rain forecast
+    yes_when: low
+    aliases: [rain, forecast]
+    phrases:
+      ">=":
+        exact: "has at least {v} mm of rain forecast"
+        approximate: "has around {approx} mm or more of rain forecast"
+        qualitative:
+          - {max: 5, text: "has some rain forecast"}
+          - {max: 15, text: "has at least moderate rain forecast"}
+          - {text: "has heavy rain forecast"}
+      "<":
+        exact: "has less than {v} mm of rain forecast"
+        approximate: "has less than around {approx} mm of rain forecast"
+        qualitative:
+          - {max: 5, text: "has little or no rain forecast"}
+          - {max: 15, text: "does not have much rain forecast"}
+          - {text: "does not have heavy rain forecast"}
+    overrides:
+      - {op: ">=", value: 1, text: "has some rain forecast"}
+      - {op: "<", value: 1, text: "has no rain forecast"}
+
+  temperature:
+    type: numeric
+    range: [5, 40]
+    label: air temperature
+    yes_when: high
+    aliases: [temperature, hot, warm, heat]
+    phrases:
+      ">=":
+        exact: "has an air temperature of at least {v}°C"
+        approximate: "has an air temperature of around {approx}°C or more"
+        qualitative:
+          - {max: 15, text: "is not cold"}
+          - {max: 25, text: "is at least warm"}
+          - {text: "is hot"}
+      "<":
+        exact: "has an air temperature below {v}°C"
+        approximate: "has an air temperature below around {approx}°C"
+        qualitative:
+          - {max: 15, text: "is cold"}
+          - {max: 25, text: "is not warm"}
+          - {text: "is not hot"}
+
+  humidity:
+    type: numeric
+    range: [10, 100]
+    step: 5
+    label: air humidity
+    yes_when: low
+    aliases: [humidity, humid]
+    phrases:
+      ">=":
+        exact: "has an air humidity of at least {v}%"
+        approximate: "has an air humidity of around {approx}% or more"
+        qualitative:
+          - {max: 35, text: "does not have very dry air"}
+          - {max: 65, text: "has at least moderately humid air"}
+          - {text: "has humid air"}
+      "<":
+        exact: "has an air humidity below {v}%"
+        approximate: "has an air humidity below around {approx}%"
+        qualitative:
+          - {max: 35, text: "has very dry air"}
+          - {max: 65, text: "has dry air"}
+          - {text: "does not have humid air"}
+
+  days_since_watering:
+    type: numeric
+    range: [0, 14]
+    label: days since last watering
+    yes_when: high
+    aliases: [watered, days ago]
+    phrases:
+      ">=":
+        exact: "was last watered at least {v} days ago"
+        approximate: "was last watered around {approx} days ago or earlier"
+        qualitative:
+          - {max: 3, text: "was not watered in the last day or two"}
+          - {max: 7, text: "has gone at least several days without water"}
+          - {text: "has gone a long time without water"}
+      "<":
+        exact: "was last watered less than {v} days ago"
+        approximate: "was last watered less than around {approx} days ago"
+        qualitative:
+          - {max: 3, text: "was watered very recently"}
+          - {max: 7, text: "was watered within the last few days"}
+          - {text: "has not gone very long without water"}
+    overrides:
+      - {op: "<", value: 1, text: "was watered today"}
+      - {op: ">=", value: 1, text: "was not watered today"}
+
+  crop_stage:
+    type: categorical
+    values: [seedling, flowering, ripening]
+    label: crop stage
+    yes_when: [seedling, flowering]   # all values but one: the sampler only draws != for 3-value categories
+    aliases: [stage, seedling, flowering, ripening]
+    phrases:
+      values: {seedling: "grows a crop at the seedling stage", flowering: "grows a crop at the flowering stage", ripening: "grows a crop at the ripening stage"}
+      not_values: {seedling: "does not grow a crop at the seedling stage", flowering: "does not grow a crop at the flowering stage", ripening: "does not grow a crop at the ripening stage"}
+    mirror: {ripening: flowering, flowering: ripening}
+
+  drip_system:
+    type: bool
+    label: drip system
+    yes_when: true
+    aliases: [drip]
+    phrases: {"true": "has a drip system", "false": "does not have a drip system"}
+    display: {true: has a drip system, false: does not have a drip system}
+
+  water_restriction:
+    type: bool
+    label: water restriction
+    yes_when: false
+    aliases: [restriction, restricted]
+    phrases: {"true": "is under a water restriction", "false": "is not under a water restriction"}
+    display: {true: is under a water restriction, false: is not under a water restriction}
+
+  region:
+    type: categorical
+    values: [north, south, east]
+    label: location on the farm
+    aliases: [north, south, east]
+    sensitive: true   # not part of the rules (no prior), like demographics in triage
+    phrases:
+      values: {north: "is in the north of the farm", south: "is in the south of the farm", east: "is in the east of the farm"}
+      not_values: {north: "is not in the north of the farm", south: "is not in the south of the farm", east: "is not in the east of the farm"}

@@ -1,0 +1,5 @@
+# Counter-intuitive twin: every threshold and value mirrored (EXP-011); labels identical record by record.
+name: triage_sim_counter_v3
+description: mirror transform of triage_sim_v3.
+derive_from: triage_sim_v3
+transform: mirror

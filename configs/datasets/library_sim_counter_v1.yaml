@@ -1,0 +1,5 @@
+# Counter-intuitive twin: every threshold and value mirrored (EXP-011); labels identical record by record.
+name: library_sim_counter_v1
+description: mirror transform of library_sim_v1.
+derive_from: library_sim_v1
+transform: mirror

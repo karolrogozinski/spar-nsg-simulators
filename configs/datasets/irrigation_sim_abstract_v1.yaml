@@ -1,0 +1,5 @@
+# Prior-free twin: features renamed (feature A, flag B, ...) and numbers rescaled to 0-100 (EXP-011); labels identical record by record.
+name: irrigation_sim_abstract_v1
+description: abstract transform of irrigation_sim_v1.
+derive_from: irrigation_sim_v1
+transform: abstract

@@ -1,0 +1,7 @@
+# EXP-011: free sanity check of beekeeping_sim_v1 with reference strategies only (no API calls).
+name: e11_smoke_beekeeping
+dataset: beekeeping_sim_v1
+simulators:
+  - {backend: baseline, model: follow_g}          # always does what the explanation says
+  - {backend: baseline, model: true_f}            # knows the true rule
+  - {backend: baseline, model: copy_reference}    # repeats the reference decision

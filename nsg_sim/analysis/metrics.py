@@ -42,6 +42,7 @@ def load_pairs(run_dirs: list[Path]) -> list[dict]:
                     "variant": rec.get("variant") or "base", "record_id": rid, "item_id": rec["item_id"],
                     "cluster": f"{rec['dataset']}|{rec['cluster_id']}", "rule_id": rec["rule_id"],
                     "explanation_type": rec["explanation_type"], "edit_size": rec.get("edit_size"),
+                    "edit_target": rec.get("edit_target"),
                     "explanation": explanation_label(rec), "level": rec["level"],
                     "evidence_condition": rec["evidence_condition"], "discriminating": rec["discriminating"],
                     **{f"rule_tags.{k}": v for k, v in (rec.get("rule_tags") or {}).items()},
