@@ -1,7 +1,0 @@
-# EXP-009: the same records as triage_attack_v1, with every explanation prefixed by the domain's
-# `partial_note` ("A simplified summary, which may not list every criterion: "), so it no longer reads as the
-# complete rule. Inputs, rules, labels and no-explanation prompts are identical.
-name: triage_attack_partial_v1
-description: triage_attack_v1 with explanations framed as a partial summary.
-derive_from: triage_attack_v1
-transform: partial

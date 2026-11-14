@@ -47,8 +47,8 @@ API keys and endpoints go in a git-ignored `.env` file in the repo root (see Ste
 | `domains/<name>.yaml` | 7 tabular domains with a known decision rule, from strong simulator priors to none: `triage_v3`, `loan`, `irrigation`, `beekeeping`, `stars`, `library`, `shells` (`triage.yaml` is the older triage version) |
 | `datasets/<domain>_sim_v1.yaml` | intuitive rules, faithful and omission explanations at four precision levels P0–P3 |
 | `datasets/<domain>_sim_counter_v1.yaml`, `..._abstract_v1.yaml` | the same records with a counter-intuitive rule (`mirror`) or with abstract feature names (`abstract`); labels are identical across the three twins |
-| `datasets/triage_attack*_v1.yaml`, `triage_evidence_v1.yaml` | hidden-cause attack and labelled examples in the prompt |
-| `experiments/sim_e8_*`, `sim_e9_*`, `sim_e10_*`, `sim_e11_*` | simulator runs: stronger simulators and reasoning, attacks, examples, the 7-domain comparison |
+| `datasets/triage_evidence_v1.yaml` | labelled examples in the prompt |
+| `experiments/sim_e8_*`, `sim_e10_*`, `sim_e11_*` | simulator runs: stronger simulators and reasoning, examples, the 7-domain comparison |
 | `experiments/priors_*.yaml` | simulator priors: P(YES) on cases with no rule and no explanation |
 
 Datasets are rebuilt identically from their recipes (`nsg build`, checked against the hash in
